@@ -526,7 +526,7 @@ function LifeMirror() {
 
   /* ═══════ RENDER: MIRROR CHECK ═══════ */
   const renderMirror = () => {
-    const reversed = [...EGS].reverse(); /* 22 at top, 1 at bottom */
+    const ordered = EGS; /* 1 at top, 22 at bottom */
     return (
     <div style={{...S.page, paddingTop:8}}>
       <Fade delay={100}>
@@ -565,11 +565,11 @@ function LifeMirror() {
         <Fade delay={mStep===1?300:100}>
           <div style={{maxWidth:400, margin:"0 auto"}}>
             <div style={{display:"flex", justifyContent:"space-between", marginBottom:10, padding:"0 4px"}}>
-              <span style={S.scE}>{mStep===1?"↓ lower vibration":"dimmed = below you"}</span>
               <span style={S.scE}>higher vibration ↑</span>
+              <span style={S.scE}>{mStep===1?"lower vibration ↓":"dimmed = below you"}</span>
             </div>
             <div style={{display:"flex", flexDirection:"column", gap:4, maxHeight:"60vh", overflowY:"auto", padding:"4px 0"}}>
-              {reversed.map((em) => {
+              {ordered.map((em) => {
                 const isCurrent = mFeel === em.key;
                 const isBelow = mStep === 2 && egsN(em.key) > egsN(mFeel);
                 const isAtCurrent = mStep === 2 && em.key === mFeel;
