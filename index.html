@@ -6,7 +6,14 @@
   <title>Life Mirror</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
-  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#faf8f3;-webkit-font-smoothing:antialiased}input,textarea,button{font-family:inherit}button{cursor:pointer}input:focus,textarea:focus{outline:none;border-color:#b5b0a8!important}::selection{background:rgba(53,122,98,.15)}@media(max-width:500px){.stick-grid{grid-template-columns:1fr 20px 1fr!important;padding:16px 10px!important}.em-pill{padding:3px 8px!important;font-size:10.5px!important}}</style>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#faf8f3;-webkit-font-smoothing:antialiased}
+    input,textarea,button{font-family:inherit}
+    button{cursor:pointer}
+    input:focus,textarea:focus{outline:none;border-color:#b5b0a8!important}
+    ::selection{background:rgba(53,122,98,.15)}
+  </style>
 </head>
 <body>
 <div id="root"></div>
@@ -14,19 +21,53 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script type="text/babel">
-const{useState,useEffect,useCallback,useRef}=React;
-const AREAS=[{id:"wealth",label:"Wealth",icon:"◈"},{id:"health",label:"Health",icon:"◉"},{id:"relationships",label:"Relationships",icon:"◇"},{id:"purpose",label:"Purpose",icon:"△"},{id:"selfworth",label:"Self-Worth",icon:"○"},{id:"joy",label:"Joy & Play",icon:"☆"}];
-const EMOTIONS=[{key:"stuck",label:"Stuck",c:"#8b5c5c"},{key:"heavy",label:"Heavy",c:"#96704e"},{key:"tense",label:"Tense",c:"#9e8840"},{key:"restless",label:"Restless",c:"#7e8455"},{key:"neutral",label:"Neutral",c:"#6e7870"},{key:"hopeful",label:"Hopeful",c:"#5c8260"},{key:"easy",label:"Easy",c:"#468a6a"},{key:"flowing",label:"Flowing",c:"#357a62"}];
-const emC=k=>EMOTIONS.find(e=>e.key===k)?.c||"#6e7870";
-const emL=k=>EMOTIONS.find(e=>e.key===k)?.label||"";
-const DIMS=[{key:"thoughts",label:"I think…",ph:"What thoughts come up…"},{key:"feelings",label:"I feel…",ph:"What emotions, sensations…"},{key:"actions",label:"I do…",ph:"What behaviors, habits…"}];
-const TILT_LABELS=["Deep resistance","Releasing","Tipping point","Allowing","Flowing"];
-const TILT_HINTS=["You're gripping hard. That's OK. The work right now is just to soften — find the most comfortable thought you can.","You're starting to put things down. Keep going. What's the sweetest spot you can find right now?","You're right at the tipping point. A Focus Wheel or a gentle pivot can tip you into allowing.","You're past the tipping point — something is pulling you forward. Where would you place your basket on this?","You're in the flow. You're the pointer, not the engine. Your inner being already expects this for you."];
-const TC=["#8b5c5c","#96704e","#6e7870","#468a6a","#357a62"];
-const MQ="Life is a mirror — when you smile, life smiles back.";
-const REMINDERS=["Nothing is more important than that you feel good.","A belief is just a thought you keep thinking.","You can't get it wrong and you never get it done.",MQ,"The basis of your life is freedom, the purpose of your life is joy.","What's coming doesn't need to match what's been.","Reach for the thought that feels better.",MQ,"Place your basket where wanting and belief meet.","You are the pointer, not the engine.","Care about how you feel — that's your only work.",MQ,"Find the sweetest spot you can right now.","A lot of your thoughts are habitual. Some are intentional.","Everything you want is downstream.",MQ,"There are always options. Always a comfortable point to reach right now.","You are the creator of your own reality.","If you would feel better, that could be different.",MQ];
-const PIVOT_STEPS=[{title:"Acknowledge",body:"You've been looking at the lack end. That's okay — it's real, it's felt, and it makes sense your attention went there. But the lack end isn't more true than the desire end. It's just been more active. A lot of your thoughts about this are habitual — well-practiced. Not wrong. Just familiar."},{title:"Recall",body:"Look at what you wrote on the desire end. Read each one slowly. Not to force anything — just to remind yourself that this end of the stick exists too. You wrote these words. They came from you. What's coming doesn't have to match what's been."},{title:"Find the thread",body:"Is there ONE thing on the desire end you can feel right now? Even faintly? Not all of it — just one thread you can genuinely connect to. One thought that doesn't feel like a stretch. The most comfortable thought you can find."},{title:"Body check",body:"Where do you feel that thread? Does anything soften? Open? Lighten? Are you still putting something down, or does it feel like something is pulling you forward? Even subtly."},{title:"Point",body:"Now just stay here for a moment. You're not fixing anything. You're not the engine — you're the pointer. You've done your part. The universal engine handles the rest. You don't have to explain anything or figure out the how."},{title:"Arrive",body:"You've turned toward the desire end. Not by denying what was — by choosing where to look. Where would you place your basket now? What can you genuinely expect? The mirror is already beginning to respond to this new expression."}];
-const CPROMPT=`You are the coaching engine inside Life Mirror. You help people shift their emotional orientation using Abraham Hicks teachings. You are a feeling-finder — not a therapist, not a meditation teacher, not a life coach.
+const {useState, useEffect, useCallback, useRef} = React;
+
+/* ═══════ CONSTANTS ═══════ */
+const AREAS = [
+  {id:"wealth", label:"Wealth", icon:"◈"},
+  {id:"health", label:"Health", icon:"◉"},
+  {id:"relationships", label:"Relationships", icon:"◇"},
+  {id:"purpose", label:"Purpose", icon:"△"},
+  {id:"selfworth", label:"Self-Worth", icon:"○"},
+  {id:"joy", label:"Joy & Play", icon:"☆"}
+];
+const ALL_AREAS = [{id:"general", label:"General", icon:"◎"}, ...AREAS];
+
+const EMOTIONS = [
+  {key:"stuck", label:"Stuck", c:"#8b5c5c"},
+  {key:"heavy", label:"Heavy", c:"#96704e"},
+  {key:"tense", label:"Tense", c:"#9e8840"},
+  {key:"restless", label:"Restless", c:"#7e8455"},
+  {key:"neutral", label:"Neutral", c:"#6e7870"},
+  {key:"hopeful", label:"Hopeful", c:"#5c8260"},
+  {key:"easy", label:"Easy", c:"#468a6a"},
+  {key:"flowing", label:"Flowing", c:"#357a62"}
+];
+const emC = k => EMOTIONS.find(e=>e.key===k)?.c || "#6e7870";
+const emL = k => EMOTIONS.find(e=>e.key===k)?.label || "";
+
+const MQ = "Life is a mirror — when you smile, life smiles back.";
+const REMINDERS = [
+  "Nothing is more important than that you feel good.",
+  "A belief is just a thought you keep thinking.",
+  "You can't get it wrong and you never get it done.", MQ,
+  "The basis of your life is freedom, the purpose of your life is joy.",
+  "What's coming doesn't need to match what's been.",
+  "Reach for the thought that feels better.", MQ,
+  "Place your basket where wanting and belief meet.",
+  "You are the pointer, not the engine.",
+  "Care about how you feel — that's your only work.", MQ,
+  "Find the sweetest spot you can right now.",
+  "A lot of your thoughts are habitual. Some are intentional.",
+  "Everything you want is downstream.", MQ,
+  "There are always options. Always a comfortable point to reach right now.",
+  "You are the creator of your own reality.",
+  "If you would feel better, that could be different.", MQ
+];
+
+/* ═══════ COACHING PROMPT ═══════ */
+const CPROMPT = `You are the coaching engine inside Life Mirror. You help people shift their emotional orientation using Abraham Hicks teachings. You are a feeling-finder — not a therapist, not a meditation teacher, not a life coach.
 
 CORE CONCEPTS:
 - THE STICK: Every subject has two ends — lack and desire. Both always present. The desire end is the FULL desire (not incremental). If fear is on lack end, love/freedom might be desire end.
@@ -62,164 +103,794 @@ FOCUS WHEEL MODE: Clean center desire. 12 statements. 1-3 gentle. 4-6 build. Aft
 
 NEVER: action steps, diagnose, spiritual bypass, lecture (>3 sentences), stack questions, promise outcomes, rush past lack, water down desire end, confuse stick with scale, build momentum in deep resistance, argue with habitual thoughts, tell someone their thought is wrong, use therapy language, over-validate, follow topic drift without naming it.
 
-START: Open casually based on what you know about their area. Examples: "So — [area]. What's going on there?" / "Talk to me about [area]. What's got some weight on it?" / "What's up with [area]? Where are you sitting with it right now?" Keep it casual and direct.`;
+START: Open casually based on what you know about their area. Examples: "So — [area]. What's going on there?" / "Talk to me about [area]. What's got some weight on it?" / "What's up with [area]? Where are you sitting with it right now?" If no specific area, just: "OK. What's got your attention right now?" Keep it casual and direct.`;
 
-const SUMMARY_PROMPT="Summarize this coaching session in 3-4 sentences. Focus on: what the person was working through, what shifted (if anything), where they landed emotionally, and any basket/expectation they found. Write in third person past tense. Be specific, not generic. Example: 'Worked through fear about job security. Started deep in lack end — habitual thought that nothing ever works out. Found desire end was freedom and creative fulfillment. Crossed tipping point when she realized money has always found a way. Basket: I expect the right opportunity to show up.' Keep it under 60 words.";
+const SUMMARY_PROMPT = "Summarize this coaching session in 3-4 sentences. Focus on: what the person was working through, what shifted (if anything), where they landed emotionally, and any basket/expectation they found. Write in third person past tense. Be specific, not generic. Keep it under 60 words.";
 
-const LS_KEY="life_mirror_data",LS_URL="life_mirror_sheet_url",LS_API="life_mirror_api_key";
-const defArea=()=>({emotion:"neutral",stick:{lack:{thoughts:[],feelings:[],actions:[]},desire:{thoughts:[],feelings:[],actions:[]}},tilt:2,focusWheels:[],currentWheel:{center:"",statements:[]},declarations:[],proofLog:[],basket:"",chats:[]});
-const initAreas=()=>AREAS.reduce((a,x)=>{a[x.id]=defArea();return a},{});
-const loadData=()=>{try{const d=localStorage.getItem(LS_KEY);const p=d?JSON.parse(d):initAreas();Object.values(p).forEach(a=>{if(!a.basket)a.basket="";if(!a.chats)a.chats=[]});return p}catch{return initAreas()}};
-const loadUrl=()=>{try{return localStorage.getItem(LS_URL)||""}catch{return""}};
-const loadApi=()=>{try{return localStorage.getItem(LS_API)||""}catch{return""}};
-const now=()=>new Date().toLocaleString();
+/* ═══════ STORAGE ═══════ */
+const LS_KEY = "life_mirror_data";
+const LS_PM = "life_mirror_placemats";
+const LS_URL = "life_mirror_sheet_url";
+const LS_API = "life_mirror_api_key";
 
-const Fade=({children,delay=0,style={}})=>{const[v,setV]=useState(false);useEffect(()=>{const t=setTimeout(()=>setV(true),delay);return()=>clearTimeout(t)},[delay]);return<div style={{opacity:v?1:0,transform:v?"translateY(0)":"translateY(8px)",transition:"opacity .4s,transform .4s",...style}}>{children}</div>};
-const ReminderStrip=()=>{const[o,setO]=useState(0);useEffect(()=>{const id=setInterval(()=>setO(p=>p+.5),30);return()=>clearInterval(id)},[]);const d=[...REMINDERS,...REMINDERS];return(<div style={{overflow:"hidden",padding:"12px 0",borderBottom:"1px solid #eee9e2",background:"#f6f3ee"}}><div style={{display:"flex",gap:40,whiteSpace:"nowrap",transform:`translateX(-${o%(REMINDERS.length*300)}px)`,willChange:"transform"}}>{d.map((r,i)=>(<span key={i} style={{fontFamily:"'Cormorant Garamond',serif",fontSize:r===MQ?14.5:14,fontStyle:"italic",color:r===MQ?"#357a62":"#7a756e",fontWeight:r===MQ?500:400,letterSpacing:".01em",flexShrink:0}}>{r}<span style={{margin:"0 20px",color:"#d0cbc4"}}>·</span></span>))}</div></div>)};
+const defArea = () => ({emotion:"neutral", focusWheels:[], currentWheel:{center:"",statements:[]}, chats:[]});
+const initAreas = () => ALL_AREAS.reduce((a,x) => {a[x.id]=defArea(); return a}, {});
 
-/* ─── CHAT PANEL with memory ─── */
-const ChatPanel=({area,areaData,apiKey,onClose,onSave,logToSheet})=>{
-  const[msgs,setMsgs]=useState([]);const[inp,setInp]=useState("");const[loading,setLoading]=useState(false);const[started,setStarted]=useState(false);const[closing,setClosing]=useState(false);const endRef=useRef(null);const inpRef=useRef(null);const msgsRef=useRef([]);
-  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"})},[msgs]);
-  useEffect(()=>{msgsRef.current=msgs},[msgs]);
+const loadData = () => {
+  try {
+    const d = localStorage.getItem(LS_KEY);
+    const p = d ? JSON.parse(d) : initAreas();
+    ALL_AREAS.forEach(a => {
+      if (!p[a.id]) p[a.id] = defArea();
+      const v = p[a.id];
+      if (!v.focusWheels) v.focusWheels = [];
+      if (!v.currentWheel) v.currentWheel = {center:"",statements:[]};
+      if (!v.chats) v.chats = [];
+      if (!v.emotion) v.emotion = "neutral";
+    });
+    return p;
+  } catch { return initAreas(); }
+};
+const loadPM = () => { try { return JSON.parse(localStorage.getItem(LS_PM)) || []; } catch { return []; } };
+const loadUrl = () => { try { return localStorage.getItem(LS_URL) || ""; } catch { return ""; } };
+const loadApi = () => { try { return localStorage.getItem(LS_API) || ""; } catch { return ""; } };
+const now = () => new Date().toLocaleString();
 
-  /* Build context: stick + basket + last 2-4 session summaries */
-  const ctx=()=>{
-    const lk=[...(areaData.stick.lack.thoughts||[]),...(areaData.stick.lack.feelings||[]),...(areaData.stick.lack.actions||[])];
-    const ds=[...(areaData.stick.desire.thoughts||[]),...(areaData.stick.desire.feelings||[]),...(areaData.stick.desire.actions||[])];
-    let c=`\n\nCONTEXT: Area=${area.label}, Emotion=${emL(areaData.emotion)}, Tilt=${TILT_LABELS[areaData.tilt]} (${areaData.tilt<=1?"below tipping point":areaData.tilt===2?"at tipping point":"above tipping point"})`;
-    if(lk.length)c+=`\nLack end: ${lk.join("; ")}`;
-    if(ds.length)c+=`\nDesire end: ${ds.join("; ")}`;
-    if(areaData.basket)c+=`\nBasket: "${areaData.basket}"`;
-    if(areaData.currentWheel.center)c+=`\nWheel center: "${areaData.currentWheel.center}" (${areaData.currentWheel.statements.length} segments)`;
-    /* Past session summaries — last 2-4 */
-    const pastChats=(areaData.chats||[]).slice(-4);
-    if(pastChats.length>0){
-      c+="\n\nPREVIOUS SESSIONS (most recent last):";
-      pastChats.forEach(ch=>{c+=`\n- (${ch.date}): ${ch.summary}`});
-      c+="\n\nUse these summaries to maintain continuity. Reference previous progress naturally if relevant — but don't force it. If they seem to be revisiting an old topic, note it: 'We've been here before. Last time you found...'";
+/* ═══════ SHARED COMPONENTS ═══════ */
+const Fade = ({children, delay=0}) => {
+  const [v, setV] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setV(true), delay); return () => clearTimeout(t); }, [delay]);
+  return <div style={{opacity:v?1:0, transform:v?"translateY(0)":"translateY(8px)", transition:"opacity .4s, transform .4s"}}>{children}</div>;
+};
+
+const ReminderStrip = () => {
+  const [o, setO] = useState(0);
+  useEffect(() => { const id = setInterval(() => setO(p => p + 0.5), 30); return () => clearInterval(id); }, []);
+  const d = [...REMINDERS, ...REMINDERS];
+  return (
+    <div style={{overflow:"hidden", padding:"12px 0", borderBottom:"1px solid #eee9e2", background:"#f6f3ee"}}>
+      <div style={{display:"flex", gap:40, whiteSpace:"nowrap", transform:`translateX(-${o % (REMINDERS.length * 300)}px)`, willChange:"transform"}}>
+        {d.map((r,i) => (
+          <span key={i} style={{fontFamily:"'Cormorant Garamond',serif", fontSize:r===MQ?14.5:14, fontStyle:"italic", color:r===MQ?"#357a62":"#7a756e", fontWeight:r===MQ?500:400, letterSpacing:".01em", flexShrink:0}}>
+            {r}<span style={{margin:"0 20px", color:"#d0cbc4"}}>·</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ═══════ CHAT PANEL ═══════ */
+const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToSheet}) => {
+  const [msgs, setMsgs] = useState([]);
+  const [inp, setInp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const endRef = useRef(null);
+  const inpRef = useRef(null);
+  const msgsRef = useRef([]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs]);
+  useEffect(() => { msgsRef.current = msgs; }, [msgs]);
+
+  const ctx = () => {
+    let c = `\n\nCONTEXT: Area=${areaLabel}, Emotion=${emL(areaData.emotion)}`;
+    if (areaData.currentWheel.center)
+      c += `\nActive Focus Wheel: "${areaData.currentWheel.center}" (${areaData.currentWheel.statements.length} segments)`;
+    const pastChats = (areaData.chats || []).slice(-4);
+    if (pastChats.length > 0) {
+      c += "\n\nPREVIOUS SESSIONS (most recent last):";
+      pastChats.forEach(ch => { c += `\n- (${ch.date}): ${ch.summary}`; });
+      c += "\n\nUse these summaries to maintain continuity. Reference previous progress naturally if relevant — but don't force it. If they seem to be revisiting an old topic, note it: 'We've been here before. Last time you found...'";
     }
     return c;
   };
 
-  const callApi=async(messages,sys)=>{try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:sys||CPROMPT+ctx(),messages})});const d=await r.json();return d.content?.map(b=>b.text||"").join("")||""}catch{return""}};
-  const send=async(t)=>{if(!t.trim())return;const nm=[...msgs,{role:"user",content:t.trim()}];setMsgs(nm);setInp("");setLoading(true);const reply=await callApi(nm);setMsgs(p=>[...p,{role:"assistant",content:reply}]);setLoading(false);setTimeout(()=>inpRef.current?.focus(),100)};
-  const start=async()=>{setStarted(true);setLoading(true);const reply=await callApi([{role:"user",content:"I'm opening a session on "+area.label+". Start me off."}]);setMsgs([{role:"assistant",content:reply}]);setLoading(false);setTimeout(()=>inpRef.current?.focus(),100)};
+  const callApi = async (messages, sys) => {
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({model:"claude-sonnet-4-20250514", max_tokens:300, system:sys||CPROMPT+ctx(), messages})
+      });
+      const d = await r.json();
+      return d.content?.map(b => b.text || "").join("") || "";
+    } catch { return ""; }
+  };
 
-  /* Close with save: summarize, store, post to sheets */
-  const handleClose=async()=>{
-    const currentMsgs=msgsRef.current;
-    /* If no real conversation happened, just close */
-    if(currentMsgs.length<2){onClose();return}
+  const send = async (t) => {
+    if (!t.trim()) return;
+    const nm = [...msgs, {role:"user", content:t.trim()}];
+    setMsgs(nm); setInp(""); setLoading(true);
+    const reply = await callApi(nm);
+    setMsgs(p => [...p, {role:"assistant", content:reply}]);
+    setLoading(false);
+    setTimeout(() => inpRef.current?.focus(), 100);
+  };
+
+  const start = async () => {
+    setStarted(true); setLoading(true);
+    const opener = areaId === "general"
+      ? "I'm opening a session. Start me off."
+      : "I'm opening a session on " + areaLabel + ". Start me off.";
+    const reply = await callApi([{role:"user", content:opener}]);
+    setMsgs([{role:"assistant", content:reply}]);
+    setLoading(false);
+    setTimeout(() => inpRef.current?.focus(), 100);
+  };
+
+  const handleClose = async () => {
+    const currentMsgs = msgsRef.current;
+    if (currentMsgs.length < 2) { onClose(); return; }
     setClosing(true);
-    /* Build conversation text for summary */
-    const convoText=currentMsgs.map(m=>(m.role==="user"?"Person: ":"Coach: ")+m.content).join("\n");
-    /* Ask Claude to summarize */
-    let summary="Session completed.";
-    try{
-      const s=await callApi([{role:"user",content:"Here is a coaching session transcript. "+SUMMARY_PROMPT+"\n\nTRANSCRIPT:\n"+convoText}],"You summarize coaching sessions concisely. Follow the instructions exactly.");
-      if(s&&s.length>10)summary=s;
-    }catch{}
-    /* Save to area's chats array */
-    const chatEntry={date:new Date().toLocaleDateString(),messages:currentMsgs,summary};
+    const convoText = currentMsgs.map(m => (m.role==="user" ? "Person: " : "Coach: ") + m.content).join("\n");
+    let summary = "Session completed.";
+    try {
+      const s = await callApi(
+        [{role:"user", content:"Here is a coaching session transcript. " + SUMMARY_PROMPT + "\n\nTRANSCRIPT:\n" + convoText}],
+        "You summarize coaching sessions concisely. Follow the instructions exactly."
+      );
+      if (s && s.length > 10) summary = s;
+    } catch {}
+    const chatEntry = {date: new Date().toLocaleDateString(), messages: currentMsgs, summary};
     onSave(chatEntry);
-    /* Post to Google Sheets */
-    logToSheet("Chat",{content:summary});
-    /* Done */
+    logToSheet("Chat", {content: summary});
     setClosing(false);
     onClose();
   };
 
-  const mb={user:{bg:"#357a62",c:"#fff",br:"14px 14px 4px 14px",border:"none"},assistant:{bg:"#fff",c:"#2a2825",br:"14px 14px 14px 4px",border:"1px solid #e8e4dd"}};
-  return(
+  const mb = {
+    user: {bg:"#357a62", c:"#fff", br:"14px 14px 4px 14px", border:"none"},
+    assistant: {bg:"#fff", c:"#2a2825", br:"14px 14px 14px 4px", border:"1px solid #e8e4dd"}
+  };
+
+  return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.35)",zIndex:200,display:"flex",justifyContent:"flex-end"}} onClick={e=>{if(e.target===e.currentTarget&&!closing)handleClose()}}>
       <div style={{width:"100%",maxWidth:420,height:"100%",background:"#faf8f3",display:"flex",flexDirection:"column",boxShadow:"-4px 0 24px rgba(0,0,0,.12)"}}>
         <div style={{padding:"16px 18px",borderBottom:"1px solid #e8e4dd",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
-          <div><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:500,color:"#1e1c1a"}}>Work this with me</div><div style={{fontSize:11,color:"#8a857e"}}>{area.label} · {emL(areaData.emotion)}{(areaData.chats||[]).length>0?` · ${(areaData.chats||[]).length} past sessions`:""}</div></div>
+          <div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:500,color:"#1e1c1a"}}>Work this with me</div>
+            <div style={{fontSize:11,color:"#8a857e"}}>{areaLabel} · {emL(areaData.emotion)}{(areaData.chats||[]).length>0?` · ${(areaData.chats||[]).length} past`:""}</div>
+          </div>
           <button onClick={closing?undefined:handleClose} style={{background:"none",border:"none",fontSize:20,color:closing?"#ccc":"#8a857e",padding:"4px 8px"}}>×</button>
         </div>
         <div style={{flex:1,overflow:"auto",padding:"16px 18px"}}>
-          {closing?(
+          {closing ? (
             <div style={{textAlign:"center",paddingTop:80}}>
               <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,color:"#1e1c1a",marginBottom:8}}>Reflecting on this session…</p>
-              <p style={{fontSize:13,color:"#8a857e",fontStyle:"italic"}}>Saving a summary so we can pick up where we left off next time.</p>
+              <p style={{fontSize:13,color:"#8a857e",fontStyle:"italic"}}>Saving a summary so we can pick up next time.</p>
             </div>
-          ):!started?(
+          ) : !started ? (
             <div style={{textAlign:"center",paddingTop:60}}>
               <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,color:"#1e1c1a",marginBottom:8}}>Ready when you are</p>
-              <p style={{fontSize:13,color:"#5a5650",lineHeight:1.6,marginBottom:6}}>I know what you've written on the stick, where your tilt is, and how this area feels.</p>
-              {(areaData.chats||[]).length>0&&<p style={{fontSize:12,color:"#357a62",marginBottom:16}}>{(areaData.chats||[]).length} past session{(areaData.chats||[]).length>1?"s":""} remembered</p>}
-              {apiKey?<button style={{padding:"10px 22px",border:"none",borderRadius:9,background:"#357a62",color:"#fff",fontSize:13,cursor:"pointer",fontFamily:"'Newsreader',serif"}} onClick={start}>Start a session</button>:<p style={{fontSize:12,color:"#8b5c5c"}}>Add your Anthropic API key in Settings to enable coaching.</p>}
+              <p style={{fontSize:13,color:"#5a5650",lineHeight:1.6,marginBottom:6}}>I can see how {areaLabel.toLowerCase()} feels and what you've been working on.</p>
+              {(areaData.chats||[]).length > 0 && <p style={{fontSize:12,color:"#357a62",marginBottom:16}}>{(areaData.chats||[]).length} past session{(areaData.chats||[]).length>1?"s":""} remembered</p>}
+              {apiKey ? <button style={S.pri} onClick={start}>Start a session</button> : <p style={{fontSize:12,color:"#8b5c5c"}}>Add your Anthropic API key in Settings first.</p>}
             </div>
-          ):(
-          <>{msgs.map((m,i)=>(<div key={i} style={{marginBottom:14,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:mb[m.role].br,background:mb[m.role].bg,color:mb[m.role].c,border:mb[m.role].border,fontSize:13.5,lineHeight:1.55,fontFamily:"'Newsreader',serif"}}>{m.content}</div></div>))}
-          {loading&&<div style={{display:"flex",justifyContent:"flex-start",marginBottom:14}}><div style={{padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:"#fff",border:"1px solid #e8e4dd",fontSize:13,color:"#8a857e",fontStyle:"italic"}}>feeling into this…</div></div>}
-          <div ref={endRef}/></>)}
+          ) : (
+            <>
+              {msgs.map((m,i) => (
+                <div key={i} style={{marginBottom:14,display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:mb[m.role].br,background:mb[m.role].bg,color:mb[m.role].c,border:mb[m.role].border,fontSize:13.5,lineHeight:1.55,fontFamily:"'Newsreader',serif"}}>{m.content}</div>
+                </div>
+              ))}
+              {loading && <div style={{display:"flex",justifyContent:"flex-start",marginBottom:14}}><div style={{padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:"#fff",border:"1px solid #e8e4dd",fontSize:13,color:"#8a857e",fontStyle:"italic"}}>feeling into this…</div></div>}
+              <div ref={endRef}/>
+            </>
+          )}
         </div>
-        {started&&!closing&&<div style={{padding:"12px 18px",borderTop:"1px solid #e8e4dd",display:"flex",gap:8,flexShrink:0}}><input ref={inpRef} style={{flex:1,padding:"10px 12px",border:"1px solid #ddd8cf",borderRadius:10,fontSize:13,fontFamily:"'Newsreader',serif",background:"#fff",color:"#2a2825"}} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!loading)send(inp)}} placeholder="Say what's on your mind…" disabled={loading}/><button style={{padding:"10px 16px",border:"none",borderRadius:9,background:"#357a62",color:"#fff",fontSize:13,cursor:"pointer",opacity:loading?.5:1}} onClick={()=>send(inp)} disabled={loading}>→</button></div>}
+        {started && !closing && (
+          <div style={{padding:"12px 18px",borderTop:"1px solid #e8e4dd",display:"flex",gap:8,flexShrink:0}}>
+            <input ref={inpRef} style={{flex:1,padding:"10px 12px",border:"1px solid #ddd8cf",borderRadius:10,fontSize:13,fontFamily:"'Newsreader',serif",background:"#fff",color:"#2a2825"}} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!loading)send(inp)}} placeholder="Say what's on your mind…" disabled={loading}/>
+            <button style={{padding:"10px 16px",border:"none",borderRadius:9,background:"#357a62",color:"#fff",fontSize:13,cursor:"pointer",opacity:loading?.5:1}} onClick={()=>send(inp)} disabled={loading}>→</button>
+          </div>
+        )}
       </div>
     </div>
-  )};
+  );
+};
 
 /* ═══════ MAIN APP ═══════ */
-function LifeMirror(){
-  const[view,setView]=useState("mirror");const[mFeel,setMFeel]=useState(null);const[areas,setAreas]=useState(loadData);const[sel,setSel]=useState(null);const[inp,setInp]=useState({side:null,dim:null,text:""});const[pvStep,setPvStep]=useState(0);const[fCInp,setFCInp]=useState("");const[fInp,setFInp]=useState("");const[dInp,setDInp]=useState({thoughts:"",feelings:"",actions:""});const[pInp,setPInp]=useState("");const[dSrc,setDSrc]=useState(null);const[sheetUrl,setSheetUrl]=useState(loadUrl);const[showSettings,setShowSettings]=useState(false);const[syncStatus,setSyncStatus]=useState(null);const[urlInp,setUrlInp]=useState(loadUrl);const[apiKey,setApiKey]=useState(loadApi);const[apiKeyInp,setApiKeyInp]=useState(loadApi);const[showChat,setShowChat]=useState(false);const[basketInp,setBasketInp]=useState("");const[showCP,setShowCP]=useState(false);
+function LifeMirror() {
+  const [view, setView] = useState("mirror");
+  const [mFeel, setMFeel] = useState(null);
+  const [areas, setAreas] = useState(loadData);
+  const [placemats, setPlacemats] = useState(loadPM);
+  const [sel, setSel] = useState("general");
+  const [fCInp, setFCInp] = useState("");
+  const [fInp, setFInp] = useState("");
+  const [showCP, setShowCP] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState(loadUrl);
+  const [showSettings, setShowSettings] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null);
+  const [urlInp, setUrlInp] = useState(loadUrl);
+  const [apiKey, setApiKey] = useState(loadApi);
+  const [apiKeyInp, setApiKeyInp] = useState(loadApi);
+  const [showChat, setShowChat] = useState(false);
+  const [pmMine, setPmMine] = useState([]);
+  const [pmUni, setPmUni] = useState([]);
+  const [pmInp, setPmInp] = useState("");
+  const [pmSide, setPmSide] = useState("mine");
 
-  useEffect(()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(areas))}catch{}},[areas]);
-  useEffect(()=>{try{localStorage.setItem(LS_URL,sheetUrl)}catch{}},[sheetUrl]);
-  useEffect(()=>{try{localStorage.setItem(LS_API,apiKey)}catch{}},[apiKey]);
+  useEffect(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(areas)); } catch {} }, [areas]);
+  useEffect(() => { try { localStorage.setItem(LS_PM, JSON.stringify(placemats)); } catch {} }, [placemats]);
+  useEffect(() => { try { localStorage.setItem(LS_URL, sheetUrl); } catch {} }, [sheetUrl]);
+  useEffect(() => { try { localStorage.setItem(LS_API, apiKey); } catch {} }, [apiKey]);
 
-  const ar=sel?AREAS.find(a=>a.id===sel):null;const dt=sel?areas[sel]:null;
-  const upd=useCallback(fn=>setAreas(p=>({...p,[sel]:fn(p[sel])})),[sel]);
-  const go=(v,id)=>{if(id!==undefined)setSel(id);setView(v);window.scrollTo(0,0)};
+  const arObj = ALL_AREAS.find(a => a.id === sel) || ALL_AREAS[0];
+  const dt = areas[sel] || defArea();
+  const upd = useCallback(fn => setAreas(p => ({...p, [sel]: fn(p[sel] || defArea())})), [sel]);
+  const go = (v) => { setView(v); window.scrollTo(0,0); };
 
-  const postToSheet=useCallback(async payload=>{if(!sheetUrl)return;try{await fetch(sheetUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"life_mirror",...payload})});setSyncStatus("ok");setTimeout(()=>setSyncStatus(null),2000)}catch{setSyncStatus("err");setTimeout(()=>setSyncStatus(null),3000)}},[sheetUrl]);
-  const logToSheet=useCallback((t,x={})=>{const al=sel?AREAS.find(a=>a.id===sel)?.label||sel:"—";const d=sel?areas[sel]:null;postToSheet({timestamp:now(),area:al,entryType:t,emotion:d?emL(d.emotion):"",tilt:d?TILT_LABELS[d.tilt]:"",...x})},[sel,areas,postToSheet]);
+  /* Sheet sync */
+  const postToSheet = useCallback(async payload => {
+    if (!sheetUrl) return;
+    try {
+      await fetch(sheetUrl, {method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"life_mirror", ...payload})});
+      setSyncStatus("ok"); setTimeout(() => setSyncStatus(null), 2000);
+    } catch { setSyncStatus("err"); setTimeout(() => setSyncStatus(null), 3000); }
+  }, [sheetUrl]);
 
-  /* Save a completed chat session to the area's chats array */
-  const handleChatSave=useCallback((chatEntry)=>{upd(d=>({...d,chats:[...(d.chats||[]),chatEntry]}))},[upd]);
+  const logToSheet = useCallback((t, x={}) => {
+    postToSheet({timestamp:now(), area:arObj.label, entryType:t, emotion:emL(dt.emotion), ...x});
+  }, [sel, areas, postToSheet, arObj, dt]);
 
-  const addSI=()=>{if(!inp.text.trim()||!inp.side||!inp.dim)return;const t=inp.text.trim();upd(d=>({...d,stick:{...d.stick,[inp.side]:{...d.stick[inp.side],[inp.dim]:[...d.stick[inp.side][inp.dim],t]}}}));logToSheet("Stick",{sideSource:inp.side,dimension:inp.dim,content:t});setInp(p=>({...p,text:""}))};
-  const rmSI=(s,dm,i)=>upd(d=>({...d,stick:{...d.stick,[s]:{...d.stick[s],[dm]:d.stick[s][dm].filter((_,j)=>j!==i)}}}));
-  const setCtr=()=>{if(!fCInp.trim())return;upd(d=>({...d,currentWheel:{...d.currentWheel,center:fCInp.trim()}}));setFCInp("")};
-  const addFS=()=>{if(!fInp.trim()||dt.currentWheel.statements.length>=12)return;const nc=dt.currentWheel.statements.length+1;upd(d=>({...d,currentWheel:{...d.currentWheel,statements:[...d.currentWheel.statements,fInp.trim()]}}));setFInp("");if(nc===6)setShowCP(true)};
-  const completeWheel=(skip=false)=>{const w=dt.currentWheel;if(!w.center)return;const st=w.statements.map((s,i)=>`${i+1}. ${s}`).join(" | ");logToSheet("Focus Wheel",{sideSource:`${w.statements.length} segments`,dimension:`Center: ${w.center}`,content:st||"(none)"});upd(d=>({...d,focusWheels:[...d.focusWheels,{...d.currentWheel,date:new Date().toLocaleDateString(),time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}],currentWheel:{center:"",statements:[]}}));setShowCP(false);if(!skip){setDSrc("focus");go("declare")}};
-  const resetWheel=()=>{if(dt.currentWheel.center){upd(d=>({...d,focusWheels:[...d.focusWheels,{...d.currentWheel,date:new Date().toLocaleDateString(),time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}],currentWheel:{center:"",statements:[]}}));setShowCP(false)}};
-  const subDecl=()=>{if(!dInp.thoughts.trim()&&!dInp.feelings.trim()&&!dInp.actions.trim())return;logToSheet("Declaration",{sideSource:dSrc||"",dimension:"thinking/feeling/doing",content:dInp.thoughts||"",content2:dInp.feelings||"",content3:dInp.actions||""});upd(d=>({...d,declarations:[{...dInp,date:new Date().toLocaleDateString(),source:dSrc},...d.declarations],tilt:Math.min(d.tilt+1,4),emotion:EMOTIONS.findIndex(e=>e.key===d.emotion)<5?EMOTIONS[Math.min(EMOTIONS.findIndex(e=>e.key===d.emotion)+2,7)].key:d.emotion}));setDInp({thoughts:"",feelings:"",actions:""});setView("stick")};
-  const addPr=()=>{if(!pInp.trim())return;const t=pInp.trim();logToSheet("Proof",{content:t});upd(d=>({...d,proofLog:[{text:t,date:new Date().toLocaleDateString()},...d.proofLog]}));setPInp("")};
-  const saveBasket=()=>{if(!basketInp.trim())return;const t=basketInp.trim();logToSheet("Basket",{content:t});upd(d=>({...d,basket:t}));setBasketInp("")};
-  const doMirrorCheck=k=>{setMFeel(k);postToSheet({timestamp:now(),area:"—",entryType:"Mirror Check",emotion:emL(k),tilt:"",sideSource:"",dimension:"",content:"",content2:"",content3:""});setTimeout(()=>go("dashboard"),450)};
-  const exportCSV=()=>{let csv="Timestamp,Area,Type,Side/Source,Dimension,Content,Content 2,Content 3,Emotion,Tilt\n";const ts=now();Object.entries(areas).forEach(([id,data])=>{const al=AREAS.find(a=>a.id===id)?.label||id;const em=emL(data.emotion);const tl=TILT_LABELS[data.tilt];["lack","desire"].forEach(s=>{["thoughts","feelings","actions"].forEach(dm=>{data.stick[s][dm].forEach(item=>{csv+=`"${ts}","${al}","Stick","${s}","${dm}","${item.replace(/"/g,'""')}","","","${em}","${tl}"\n`})})});if(data.basket)csv+=`"${ts}","${al}","Basket","","","${data.basket.replace(/"/g,'""')}","","","${em}","${tl}"\n`;(data.chats||[]).forEach(ch=>{csv+=`"${ch.date}","${al}","Chat","","","${(ch.summary||'').replace(/"/g,'""')}","","","",""\n`});data.focusWheels.forEach(fw=>{const st=fw.statements.map((s,i)=>`${i+1}. ${s}`).join(" | ");csv+=`"${fw.date} ${fw.time}","${al}","Focus Wheel","${fw.statements.length} seg","Center: ${fw.center}","${st.replace(/"/g,'""')}","","","",""\n`});data.declarations.forEach(d=>{csv+=`"${d.date}","${al}","Declaration","${d.source}","thinking/feeling/doing","${(d.thoughts||'').replace(/"/g,'""')}","${(d.feelings||'').replace(/"/g,'""')}","${(d.actions||'').replace(/"/g,'""')}","",""\n`});data.proofLog.forEach(p=>{csv+=`"${p.date}","${al}","Proof","","","${p.text.replace(/"/g,'""')}","","","",""\n`})});const blob=new Blob([csv],{type:"text/csv"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`life-mirror-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)};
+  const handleChatSave = useCallback((chatEntry) => {
+    upd(d => ({...d, chats:[...(d.chats||[]), chatEntry]}));
+  }, [upd]);
 
-  const TiltBar=({value,onChange,mini=false})=>{const h=mini?3:4,ds=mini?7:14,gl=TC[value],pos=(value/4)*100;return(<div style={{position:"relative",width:"100%",height:mini?12:28,display:"flex",alignItems:"center",cursor:onChange?"pointer":"default"}} onClick={e=>{if(!onChange)return;const r=e.currentTarget.getBoundingClientRect();onChange(Math.round(((e.clientX-r.left)/r.width)*4))}}><div style={{position:"absolute",left:0,right:0,height:h,borderRadius:h,background:"#e5e0d8"}}/><div style={{position:"absolute",left:0,width:`${pos}%`,height:h,borderRadius:h,background:`linear-gradient(90deg,#8b5c5c,${gl})`,transition:"width .3s,background .3s"}}/>{!mini&&[0,1,2,3,4].map(i=><div key={i} style={{position:"absolute",left:`${(i/4)*100}%`,transform:"translateX(-50%)",width:6,height:6,borderRadius:"50%",background:i<=value?gl:"#ddd8cf",transition:"background .3s"}}/>)}<div style={{position:"absolute",left:`${pos}%`,transform:"translateX(-50%)",width:ds,height:ds,borderRadius:"50%",background:"#fff",border:`2px solid ${gl}`,boxShadow:mini?"none":"0 1px 4px rgba(0,0,0,.1)",transition:"left .3s,border-color .3s"}}/></div>)};
+  /* Focus Wheel */
+  const setCtr = () => { if(!fCInp.trim()) return; upd(d=>({...d, currentWheel:{...d.currentWheel, center:fCInp.trim()}})); setFCInp(""); };
+  const addFS = () => {
+    if (!fInp.trim() || dt.currentWheel.statements.length >= 12) return;
+    const nc = dt.currentWheel.statements.length + 1;
+    upd(d => ({...d, currentWheel:{...d.currentWheel, statements:[...d.currentWheel.statements, fInp.trim()]}}));
+    setFInp("");
+    if (nc === 6) setShowCP(true);
+  };
+  const completeWheel = (another=false) => {
+    const w = dt.currentWheel;
+    if (!w.center) return;
+    const st = w.statements.map((s,i) => `${i+1}. ${s}`).join(" | ");
+    logToSheet("Focus Wheel", {sideSource:`${w.statements.length} segments`, dimension:`Center: ${w.center}`, content:st||"(none)"});
+    upd(d => ({
+      ...d,
+      focusWheels: [...d.focusWheels, {...d.currentWheel, date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}],
+      currentWheel: {center:"", statements:[]}
+    }));
+    setShowCP(false);
+    if (!another) go("main");
+  };
+  const resetWheel = () => {
+    if (dt.currentWheel.center) {
+      upd(d => ({
+        ...d,
+        focusWheels: [...d.focusWheels, {...d.currentWheel, date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}],
+        currentWheel: {center:"", statements:[]}
+      }));
+      setShowCP(false);
+    }
+  };
 
-  const renderSettings=()=>(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>{if(e.target===e.currentTarget)setShowSettings(false)}}><div style={{background:"#faf8f3",borderRadius:16,padding:"28px 24px",maxWidth:440,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}><h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,margin:"0 0 16px",color:"#1e1c1a"}}>Settings</h2><label style={{fontSize:12,color:"#5a5650",display:"block",marginBottom:4}}>Google Sheets URL</label><input style={{...S.ti,width:"100%",marginBottom:12}} value={urlInp} onChange={e=>setUrlInp(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec"/><label style={{fontSize:12,color:"#5a5650",display:"block",marginBottom:4}}>Anthropic API Key <span style={{color:"#8a857e"}}>(for coaching chat)</span></label><input style={{...S.ti,width:"100%",marginBottom:4}} type="password" value={apiKeyInp} onChange={e=>setApiKeyInp(e.target.value)} placeholder="sk-ant-…"/><p style={{fontSize:10,color:"#8a857e",margin:"0 0 16px"}}>Your key stays in this browser only. Never sent anywhere except Anthropic's API.</p><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button style={S.pri} onClick={()=>{setSheetUrl(urlInp.trim());setApiKey(apiKeyInp.trim());setShowSettings(false)}}>Save</button><button style={S.sec} onClick={()=>setShowSettings(false)}>Cancel</button></div></div></div>);
+  /* Placemat */
+  const addPmItem = () => {
+    if (!pmInp.trim()) return;
+    if (pmSide === "mine") setPmMine(p => [...p, pmInp.trim()]);
+    else setPmUni(p => [...p, pmInp.trim()]);
+    setPmInp("");
+  };
+  const movePmItem = (from, idx) => {
+    if (from === "mine") {
+      setPmUni(p => [...p, pmMine[idx]]);
+      setPmMine(p => p.filter((_,i) => i !== idx));
+    } else {
+      setPmMine(p => [...p, pmUni[idx]]);
+      setPmUni(p => p.filter((_,i) => i !== idx));
+    }
+  };
+  const rmPmItem = (from, idx) => {
+    if (from === "mine") setPmMine(p => p.filter((_,i) => i !== idx));
+    else setPmUni(p => p.filter((_,i) => i !== idx));
+  };
+  const savePlacemat = () => {
+    if (pmMine.length === 0 && pmUni.length === 0) return;
+    const pm = {date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), mine:[...pmMine], universe:[...pmUni]};
+    setPlacemats(p => [pm, ...p]);
+    postToSheet({timestamp:now(), area:"—", entryType:"Placemat", sideSource:`Mine: ${pmMine.length}, Universe: ${pmUni.length}`, dimension:"", content:`Mine: ${pmMine.join("; ")}`, content2:`Universe: ${pmUni.join("; ")}`, content3:"", emotion:"", tilt:""});
+    setPmMine([]); setPmUni([]); setPmInp("");
+    go("main");
+  };
 
-  const renderMirror=()=>(<div style={S.mirrorW}><Fade delay={100}><h1 style={S.mirrorH}>Before anything else</h1><p style={S.mirrorS}>Right now — not about any specific topic — what are you putting out?</p></Fade><Fade delay={300}><div style={S.emScaleWrap}><div style={S.emScaleBar}><span style={S.scE}>resistance</span><div style={S.scL}/><span style={S.scE}>alignment</span></div><div style={S.emGrid}>{EMOTIONS.map(em=>(<button key={em.key} onClick={()=>doMirrorCheck(em.key)} style={{...S.emBtn,borderColor:mFeel===em.key?em.c:"#ddd8cf",background:mFeel===em.key?em.c+"14":"transparent"}}><span style={{width:7,height:7,borderRadius:"50%",background:em.c,flexShrink:0}}/><span>{em.label}</span></button>))}</div></div></Fade><Fade delay={550}><p style={S.mirrorHint}>The mirror doesn't judge. It just reflects.</p></Fade></div>);
+  /* Mirror check */
+  const doMirrorCheck = k => {
+    setMFeel(k);
+    postToSheet({timestamp:now(), area:"—", entryType:"Mirror Check", emotion:emL(k), sideSource:"", dimension:"", content:"", content2:"", content3:"", tilt:""});
+    setTimeout(() => go("main"), 400);
+  };
 
-  const renderDash=()=>(<div style={S.page}><Fade><div style={S.ctr}><h1 style={S.h1}>Life Mirror</h1><p style={S.sub}>Each area reflects what you're putting out. Tap to explore.</p></div></Fade><div style={S.dGrid}>{AREAS.map((a,i)=>{const d=areas[a.id];const ec=emC(d.emotion);const has=d.stick.lack.thoughts.length+d.stick.desire.thoughts.length>0||d.currentWheel.center;return(<Fade key={a.id} delay={100+i*60}><button style={S.dCard} onClick={()=>go("stick",a.id)} onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,.09)"}} onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 1px 10px rgba(0,0,0,.05)"}}>{has&&<div style={S.actDot}/>}<div style={S.dTop}><span style={S.dIcon}>{a.icon}</span><span style={S.dLabel}>{a.label}</span></div><div style={{...S.dEm,color:ec}}>{emL(d.emotion)}</div><div style={{padding:"4px 0 0",width:"100%"}}><TiltBar value={d.tilt} mini/></div></button></Fade>)})}</div><Fade delay={600}><div style={{display:"flex",justifyContent:"center",gap:8,flexWrap:"wrap"}}><button style={S.ghost} onClick={()=>setView("mirror")}>← Mirror check</button><button style={{...S.ghost,color:"#357a62"}} onClick={exportCSV}>↓ CSV</button><button style={S.ghost} onClick={()=>{setUrlInp(sheetUrl);setApiKeyInp(apiKey);setShowSettings(true)}}>⚙ Settings{sheetUrl?" ✓":""}</button></div></Fade>{syncStatus&&<div style={{textAlign:"center",padding:"6px 0",fontSize:11,color:syncStatus==="ok"?"#357a62":"#8b5c5c"}}>{syncStatus==="ok"?"✓ Synced":"✗ Sync failed"}</div>}</div>);
+  /* CSV */
+  const exportCSV = () => {
+    let csv = "Timestamp,Area,Type,Detail,Content\n";
+    Object.entries(areas).forEach(([id, data]) => {
+      const al = ALL_AREAS.find(a=>a.id===id)?.label||id;
+      data.focusWheels.forEach(fw => {
+        const st = fw.statements.map((s,i) => `${i+1}. ${s}`).join(" | ");
+        csv += `"${fw.date} ${fw.time}","${al}","Focus Wheel","Center: ${fw.center}","${st.replace(/"/g,'""')}"\n`;
+      });
+      (data.chats||[]).forEach(ch => {
+        csv += `"${ch.date}","${al}","Chat","","${(ch.summary||'').replace(/"/g,'""')}"\n`;
+      });
+    });
+    placemats.forEach(pm => {
+      csv += `"${pm.date} ${pm.time}","—","Placemat","Mine: ${pm.mine.length} / Universe: ${pm.universe.length}","Mine: ${pm.mine.join('; ')} | Universe: ${pm.universe.join('; ')}"\n`;
+    });
+    const blob = new Blob([csv], {type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `life-mirror-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
 
-  const Side=({side,color,label})=>{const total=DIMS.reduce((a,dm)=>a+dt.stick[side][dm.key].length,0);return(<div style={S.sideCol}><div style={{...S.sideHd,color}}><span style={{width:7,height:7,borderRadius:"50%",background:color,flexShrink:0}}/><span>{label}</span>{total>0&&<span style={{fontSize:10,opacity:.6,fontWeight:400,marginLeft:"auto"}}>{total}</span>}</div>{DIMS.map(dm=>(<div key={dm.key} style={S.dimB}><div style={S.dimH}>{dm.label}</div>{dt.stick[side][dm.key].map((it,i)=>(<div key={i} style={{...S.chip,borderLeftColor:color}}><span style={{flex:1}}>{it}</span><button style={S.rmB} onClick={()=>rmSI(side,dm.key,i)}>×</button></div>))}{inp.side===side&&inp.dim===dm.key?(<div style={S.iRow}><input autoFocus style={{...S.ti,borderColor:color+"60"}} value={inp.text} placeholder={dm.ph} onChange={e=>setInp(p=>({...p,text:e.target.value}))} onKeyDown={e=>e.key==="Enter"&&addSI()}/><button style={{...S.plus,background:color}} onClick={addSI}>+</button></div>):(<button style={{...S.addL,color}} onClick={()=>setInp({side,dim:dm.key,text:""})}>+ add</button>)}</div>))}</div>)};
+  /* Count total history for an area */
+  const areaCount = (id) => {
+    const d = areas[id];
+    if (!d) return 0;
+    return (d.focusWheels?.length||0) + (d.chats?.length||0);
+  };
 
-  const renderStick=()=>(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("dashboard")}>← All areas</button><div style={S.sHead}><span style={S.sIco}>{ar.icon}</span><h1 style={S.h1}>{ar.label}</h1></div><p style={S.sSub}>Every subject has two ends. See both clearly — then choose where to look.</p></Fade><Fade delay={60}><div style={S.emRow}><span style={S.emRowLbl}>How does this area feel right now?</span><div style={S.emRowPills}>{EMOTIONS.map(em=>(<button key={em.key} className="em-pill" onClick={()=>upd(d=>({...d,emotion:em.key}))} style={{...S.emPill,borderColor:dt.emotion===em.key?em.c:"#ddd8cf",background:dt.emotion===em.key?em.c+"14":"transparent",color:dt.emotion===em.key?em.c:"#807a72"}}>{em.label}</button>))}</div></div></Fade><Fade delay={130}><div style={S.stickBox} className="stick-grid"><Side side="lack" color="#8b5c5c" label="The lack end"/><div style={S.stickMid}><div style={S.stickLn}/><span style={S.stickG}>⟷</span><div style={S.stickLn}/></div><Side side="desire" color="#357a62" label="The desire end"/></div></Fade><Fade delay={200}><div style={S.tiltSection}><p style={S.tiltQ}>Where are you on this?</p><div style={S.tiltWrap}><span style={S.tiltEnd}>Resistance</span><div style={{flex:1}}><TiltBar value={dt.tilt} onChange={v=>upd(d=>({...d,tilt:v}))}/></div><span style={S.tiltEnd}>Allowing</span></div><div style={{...S.tiltLabel,color:TC[dt.tilt]}}>{TILT_LABELS[dt.tilt]}</div><p style={{...S.tiltHint,color:TC[dt.tilt]}}>{TILT_HINTS[dt.tilt]}</p>{dt.tilt<=1&&<div style={S.tiltActs}><button style={S.pri} onClick={()=>{setPvStep(0);go("pivot")}}>Guide me through the pivot</button><button style={S.sec} onClick={()=>setShowChat(true)}>Work this with me</button></div>}{dt.tilt===2&&<div style={S.tiltActs}><button style={S.pri} onClick={()=>{setDSrc("focus");go("focus")}}>Focus Wheel</button><button style={S.sec} onClick={()=>{setPvStep(0);go("pivot")}}>Guided Pivot</button><button style={S.sec} onClick={()=>setShowChat(true)}>Work this with me</button></div>}{dt.tilt>=3&&<div><div style={{background:"#f2f7f4",borderRadius:12,padding:"16px 18px",maxWidth:440,margin:"0 auto 12px",border:"1px solid #d5e8df"}}><div style={{fontSize:12,color:"#357a62",fontWeight:500,textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}}>Place your basket</div><p style={{fontSize:12.5,color:"#3a3733",lineHeight:1.5,marginBottom:10}}>Far enough to excite you, close enough to believe. What can you genuinely expect?</p>{dt.basket?(<div><div style={{fontSize:14,color:"#1e1c1a",fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontWeight:500,marginBottom:8}}>"{dt.basket}"</div><button style={{...S.ghost,fontSize:11,padding:"2px 0",margin:0,color:"#357a62"}} onClick={()=>upd(d=>({...d,basket:""}))}>Rewrite basket</button></div>):(<div style={S.iRow}><input style={S.ti} value={basketInp} onChange={e=>setBasketInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveBasket()} placeholder="I expect…"/><button style={{...S.plus,background:"#357a62"}} onClick={saveBasket}>Set</button></div>)}</div><div style={S.tiltActs}><button style={S.pri} onClick={()=>{setDSrc("focus");go("focus")}}>Focus Wheel</button><button style={S.sec} onClick={()=>setShowChat(true)}>Work this with me</button></div></div>}</div></Fade><Fade delay={260}><div style={S.tBar}><button style={S.tBtn} onClick={()=>go("proof")}>Proof Log</button>{dt.declarations.length>0&&<button style={S.tBtn} onClick={()=>go("declog")}>Declarations</button>}{dt.focusWheels.length>0&&<button style={S.tBtn} onClick={()=>go("wheellog")}>Past Wheels</button>}{(dt.chats||[]).length>0&&<button style={S.tBtn} onClick={()=>go("chatlog")}>Past Sessions</button>}</div></Fade></div>);
+  /* ═══════ RENDER: SETTINGS ═══════ */
+  const renderSettings = () => (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.3)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={e=>{if(e.target===e.currentTarget)setShowSettings(false)}}>
+      <div style={{background:"#faf8f3",borderRadius:16,padding:"28px 24px",maxWidth:440,width:"100%",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:400,margin:"0 0 16px",color:"#1e1c1a"}}>Settings</h2>
+        <label style={{fontSize:12,color:"#5a5650",display:"block",marginBottom:4}}>Google Sheets URL</label>
+        <input style={{...S.ti,width:"100%",marginBottom:12}} value={urlInp} onChange={e=>setUrlInp(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec"/>
+        <label style={{fontSize:12,color:"#5a5650",display:"block",marginBottom:4}}>Anthropic API Key</label>
+        <input style={{...S.ti,width:"100%",marginBottom:4}} type="password" value={apiKeyInp} onChange={e=>setApiKeyInp(e.target.value)} placeholder="sk-ant-…"/>
+        <p style={{fontSize:10,color:"#8a857e",margin:"0 0 16px"}}>Your key stays in this browser only.</p>
+        <div style={{display:"flex",gap:8}}>
+          <button style={S.pri} onClick={()=>{setSheetUrl(urlInp.trim());setApiKey(apiKeyInp.trim());setShowSettings(false)}}>Save</button>
+          <button style={S.sec} onClick={()=>setShowSettings(false)}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
 
-  const renderPivot=()=>{const step=PIVOT_STEPS[pvStep];const last=pvStep===PIVOT_STEPS.length-1;const desItems=dt?[...dt.stick.desire.thoughts,...dt.stick.desire.feelings,...dt.stick.desire.actions]:[];return(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button></Fade><Fade delay={80}><div style={S.pvCard}><div style={S.pvProg}>{PIVOT_STEPS.map((_,i)=><div key={i} style={{...S.pvDt,background:i<=pvStep?"#357a62":"#ddd8cf"}}/>)}</div><div style={S.pvSN}>Step {pvStep+1} of {PIVOT_STEPS.length}</div><h2 style={S.pvTi}>{step.title}</h2><p style={S.pvBo}>{step.body}</p>{pvStep===1&&desItems.length>0&&<div style={S.pvList}>{desItems.map((it,i)=><div key={i} style={S.pvIt}>{it}</div>)}</div>}{pvStep===2&&<p style={S.pvPr}>Sit with the desire end. Let one thread surface that feels even slightly true…</p>}{pvStep===3&&<p style={S.pvPr}>Close your eyes if it helps. Notice your chest, your shoulders, your belly.</p>}<div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}><div style={S.pvNav}>{pvStep>0&&<button style={S.sec} onClick={()=>setPvStep(p=>p-1)}>← Back</button>}{!last?<button style={S.pri} onClick={()=>setPvStep(p=>p+1)}>Continue →</button>:<button style={S.pri} onClick={()=>{setDSrc("pivot");go("declare")}}>Declare what's true now →</button>}</div>{last&&<button style={S.ghost} onClick={()=>{upd(d=>({...d,tilt:Math.min(d.tilt+1,4)}));go("stick")}}>Skip — return to {ar?.label}</button>}</div>{(pvStep===2||pvStep===3)&&<button style={{...S.ghost,marginTop:14,fontSize:12}} onClick={()=>{setDSrc("focus");go("focus")}}>No thread yet? Try the Focus Wheel →</button>}</div></Fade></div>)};
+  /* ═══════ RENDER: MIRROR CHECK ═══════ */
+  const renderMirror = () => (
+    <div style={S.mirrorW}>
+      <Fade delay={100}>
+        <h1 style={S.mirrorH}>Before anything else</h1>
+        <p style={S.mirrorS}>Right now — not about any specific topic — what are you putting out?</p>
+      </Fade>
+      <Fade delay={300}>
+        <div style={{width:"100%",maxWidth:360}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:14,padding:"0 4px"}}>
+            <span style={S.scE}>resistance</span>
+            <span style={S.scE}>alignment</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {EMOTIONS.map((em, i) => (
+              <button key={em.key} onClick={() => doMirrorCheck(em.key)} style={{
+                display:"flex", alignItems:"center", gap:12, padding:"11px 16px",
+                border: mFeel===em.key ? `2px solid ${em.c}` : "1px solid #e8e4dd",
+                borderRadius:10, background: mFeel===em.key ? em.c+"0d" : "#fff",
+                cursor:"pointer", fontFamily:"'Newsreader',serif", fontSize:14,
+                color:"#2a2825", transition:"all .2s", width:"100%"
+              }}>
+                <span style={{width:10, height:10, borderRadius:"50%", background:em.c, flexShrink:0}}/>
+                <span style={{flex:1, textAlign:"left"}}>{em.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Fade>
+      <Fade delay={550}>
+        <p style={S.mirrorHint}>The mirror doesn't judge. It just reflects.</p>
+      </Fade>
+    </div>
+  );
 
-  const renderFocus=()=>{const sts=dt.currentWheel.statements;const ctr=dt.currentWheel.center;const done=sts.length>=12;return(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button><div style={S.ctr}><h1 style={S.h1}>Focus Wheel</h1><p style={S.sub}>Place your desire at center. Reach for thoughts that feel true and bring comfort.</p></div></Fade><Fade delay={100}><div style={S.wW}><svg viewBox="0 0 400 400" style={S.wS}><circle cx="200" cy="200" r="188" fill="none" stroke="#ccc8c0" strokeWidth="1"/><circle cx="200" cy="200" r="140" fill="none" stroke="#ccc8c0" strokeWidth=".8"/>{Array.from({length:12}).map((_,i)=>{const a=(i*30-90)*(Math.PI/180);return<line key={i} x1={200+140*Math.cos(a)} y1={200+140*Math.sin(a)} x2={200+188*Math.cos(a)} y2={200+188*Math.sin(a)} stroke="#ccc8c0" strokeWidth=".8"/>})}{sts.map((_,i)=>{const s=(i*30-90)*(Math.PI/180);const e=((i+1)*30-90)*(Math.PI/180);const op=.15+(i/12)*.4;return<path key={i} d={`M${200+140*Math.cos(s)} ${200+140*Math.sin(s)} L${200+188*Math.cos(s)} ${200+188*Math.sin(s)} A188 188 0 0 1 ${200+188*Math.cos(e)} ${200+188*Math.sin(e)} L${200+140*Math.cos(e)} ${200+140*Math.sin(e)} A140 140 0 0 0 ${200+140*Math.cos(s)} ${200+140*Math.sin(s)}Z`} fill={`rgba(53,122,98,${op})`} stroke="rgba(53,122,98,.25)" strokeWidth=".5"/>})}<circle cx="200" cy="200" r="64" fill="#ece8e0" stroke="#b8b3ab" strokeWidth=".8"/>{ctr&&<foreignObject x="140" y="170" width="120" height="60"><div style={{fontSize:12.5,color:"#1e1c1a",textAlign:"center",lineHeight:1.3,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,padding:"0 4px"}}>{ctr}</div></foreignObject>}{Array.from({length:12}).map((_,i)=>{const m=((i+.5)*30-90)*(Math.PI/180);return<text key={i} x={200+164*Math.cos(m)} y={200+164*Math.sin(m)} textAnchor="middle" dominantBaseline="middle" fontSize="10.5" fontWeight={i<sts.length?"700":"400"} fill={i<sts.length?"#1e5040":"#b5b0a8"} fontFamily="'Newsreader',serif">{i+1}</text>})}</svg></div></Fade><Fade delay={170}>{showCP&&sts.length>=6&&!done&&<div style={{background:"#f6f3ee",borderRadius:12,padding:"16px 18px",marginBottom:14,border:"1px solid #e8e4dd",textAlign:"center"}}><p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:"#1e1c1a",marginBottom:4}}>Halfway check</p><p style={{fontSize:13,color:"#5a5650",lineHeight:1.5,marginBottom:10}}>How does this feel compared to when you started? Are you still putting something down, or does it feel like something's pulling you forward?</p><button style={{...S.ghost,color:"#357a62",fontSize:12}} onClick={()=>setShowCP(false)}>I feel it shifting — keep going</button></div>}{!ctr?(<div style={S.fSec}><label style={S.fLbl}>Your desire — the center of the wheel</label><div style={S.iRow}><input style={S.ti} value={fCInp} onChange={e=>setFCInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&setCtr()} placeholder="I am financially free…"/><button style={{...S.plus,background:"#357a62"}} onClick={setCtr}>Set</button></div></div>):!done?(<div style={S.fSec}><label style={S.fLbl}>Segment {sts.length+1} of 12 — a thought that brings comfort</label><div style={S.iRow}><input style={S.ti} value={fInp} onChange={e=>setFInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addFS()} placeholder="A thought that soothes…"/><button style={{...S.plus,background:"#357a62"}} onClick={addFS}>+</button></div></div>):(<div style={{...S.fSec,textAlign:"center"}}><p style={{...S.tiltHint,color:"#357a62"}}>Your wheel is complete. Where's your basket sitting now?</p><div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}><button style={S.pri} onClick={()=>completeWheel(false)}>Declare what's true now →</button><button style={S.sec} onClick={()=>completeWheel(true)}>Start another wheel</button><button style={S.ghost} onClick={()=>{completeWheel(true);go("stick")}}>Return to {ar?.label}</button></div></div>)}{sts.length>0&&<div style={S.fList}>{sts.map((s,i)=><div key={i} style={S.fItem}><span style={S.fNum}>{i+1}</span><span style={{color:"#2a2825"}}>{s}</span></div>)}</div>}{ctr&&!done&&<div style={{textAlign:"center",marginTop:16}}><button style={{...S.ghost,fontSize:12}} onClick={resetWheel}>Save & start new wheel</button></div>}</Fade></div>)};
+  /* ═══════ RENDER: MAIN SCREEN ═══════ */
+  const renderMain = () => (
+    <div style={S.page}>
+      <Fade>
+        <div style={S.ctr}>
+          <h1 style={S.h1}>Life Mirror</h1>
+        </div>
+      </Fade>
 
-  const renderDeclare=()=>(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button><div style={S.ctr}><h1 style={S.h1}>From this new place</h1><p style={S.sub}>You've shifted. What's true from here?<br/>Not aspirational. What you genuinely feel right now.</p></div></Fade><Fade delay={120}><div style={S.dclCd}>{DIMS.map(dm=>(<div key={dm.key} style={S.dclF}><label style={S.dclL}>Now {dm.label.toLowerCase()}</label><textarea style={S.dclTa} rows={2} value={dInp[dm.key]} onChange={e=>setDInp(p=>({...p,[dm.key]:e.target.value}))} placeholder={dm.key==="thoughts"?"What thought feels most true?":dm.key==="feelings"?"What's the emotional tone?":"What's the natural next step?"}/></div>))}<button style={{...S.pri,width:"100%",marginTop:6}} onClick={subDecl}>Anchor this and return ↗</button><button style={{...S.ghost,width:"100%",marginTop:4}} onClick={()=>go("stick")}>Skip for now</button></div></Fade></div>);
+      {/* Area selector */}
+      <Fade delay={60}>
+        <div style={{marginBottom:20}}>
+          <span style={{fontSize:12, color:"#5a5650", display:"block", marginBottom:8}}>What area? <span style={{color:"#b5b0a8"}}>(optional)</span></span>
+          <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+            {ALL_AREAS.map(a => (
+              <button key={a.id} onClick={() => setSel(a.id)} style={{
+                padding:"6px 14px", borderRadius:20,
+                border:`1px solid ${sel===a.id ? "#357a62" : "#ddd8cf"}`,
+                background: sel===a.id ? "#357a6214" : "transparent",
+                fontSize:12.5, cursor:"pointer", fontFamily:"'Newsreader',serif",
+                color: sel===a.id ? "#357a62" : "#807a72",
+                transition:"all .15s", display:"flex", alignItems:"center", gap:5
+              }}>
+                <span style={{fontSize:11}}>{a.icon}</span>
+                {a.label}
+                {areaCount(a.id) > 0 && <span style={{fontSize:9, opacity:.5, marginLeft:2}}>{areaCount(a.id)}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Fade>
 
-  const renderDecLog=()=>(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button><div style={S.ctr}><h1 style={S.h1}>Declarations</h1></div></Fade><Fade delay={100}><div style={S.dclLog}>{dt.declarations.length===0?<p style={S.empty}>No declarations yet.</p>:dt.declarations.map((d,i)=>(<div key={i} style={S.dclLI}><div style={S.dclM}><span style={S.dclDt}>{d.date}</span><span style={S.dclSr}>via {d.source==="pivot"?"Pivot":"Focus Wheel"}</span></div>{d.thoughts&&<div style={S.dclDm}><span style={S.dclDmL}>Thinking:</span> {d.thoughts}</div>}{d.feelings&&<div style={S.dclDm}><span style={S.dclDmL}>Feeling:</span> {d.feelings}</div>}{d.actions&&<div style={S.dclDm}><span style={S.dclDmL}>Doing:</span> {d.actions}</div>}</div>))}</div></Fade></div>);
-  const renderWheelLog=()=>(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button><div style={S.ctr}><h1 style={S.h1}>Past Focus Wheels</h1></div></Fade><Fade delay={100}><div style={S.dclLog}>{dt.focusWheels.length===0?<p style={S.empty}>No completed wheels yet.</p>:dt.focusWheels.map((fw,i)=>(<div key={i} style={S.dclLI}><div style={S.dclM}><span style={S.dclDt}>{fw.date} {fw.time}</span><span style={S.dclSr}>{fw.statements.length} seg</span></div><div style={{...S.dclDm,fontWeight:500,marginBottom:6}}>Center: {fw.center}</div>{fw.statements.map((s,j)=><div key={j} style={{...S.dclDm,paddingLeft:8}}><span style={{color:"#357a62",fontWeight:500,marginRight:6}}>{j+1}.</span>{s}</div>)}</div>))}</div></Fade></div>);
-  const renderProof=()=>(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button><div style={S.ctr}><h1 style={S.h1}>Proof Log</h1><p style={S.sub}>The mirror is always responding. What are you noticing?</p></div></Fade><Fade delay={100}><div style={S.fSec}><div style={S.iRow}><input style={S.ti} value={pInp} onChange={e=>setPInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addPr()} placeholder="A sign, a shift, a cooperative component…"/><button style={{...S.plus,background:"#357a62"}} onClick={addPr}>+</button></div><div style={S.prList}>{dt.proofLog.length===0?<p style={S.empty}>Notice what the mirror reflects back.</p>:dt.proofLog.map((p,i)=>(<div key={i} style={S.prI}><span style={S.prD}>{p.date}</span><span>{p.text}</span></div>))}</div></div></Fade></div>);
+      {/* Emotion — only for specific areas */}
+      {sel !== "general" && (
+        <Fade delay={90}>
+          <div style={{marginBottom:20}}>
+            <span style={{fontSize:12, color:"#5a5650", display:"block", marginBottom:8}}>How does {arObj.label.toLowerCase()} feel right now?</span>
+            <div style={{display:"flex", gap:5, flexWrap:"wrap"}}>
+              {EMOTIONS.map(em => (
+                <button key={em.key} onClick={() => upd(d => ({...d, emotion:em.key}))} style={{
+                  padding:"4px 11px", borderRadius:18,
+                  border:`1px solid ${dt.emotion===em.key ? em.c : "#ddd8cf"}`,
+                  fontSize:11, cursor:"pointer", fontFamily:"'Newsreader',serif",
+                  transition:"all .2s",
+                  background: dt.emotion===em.key ? em.c+"14" : "transparent",
+                  color: dt.emotion===em.key ? em.c : "#807a72"
+                }}>{em.label}</button>
+              ))}
+            </div>
+          </div>
+        </Fade>
+      )}
 
-  /* ═══ PAST SESSIONS LOG ═══ */
-  const renderChatLog=()=>(<div style={S.page}><Fade><button style={S.back} onClick={()=>go("stick")}>← Back to {ar?.label}</button><div style={S.ctr}><h1 style={S.h1}>Past Sessions</h1><p style={S.sub}>What you've worked through with the coach on {ar?.label}.</p></div></Fade><Fade delay={100}><div style={S.dclLog}>{(dt.chats||[]).length===0?<p style={S.empty}>No coaching sessions yet.</p>:[...(dt.chats||[])].reverse().map((ch,i)=>(<div key={i} style={S.dclLI}><div style={S.dclM}><span style={S.dclDt}>{ch.date}</span><span style={S.dclSr}>{ch.messages?.length||0} messages</span></div><div style={{fontSize:13,lineHeight:1.55,color:"#3a3733"}}>{ch.summary}</div></div>))}</div></Fade></div>);
+      {/* ─── THREE TOOLS ─── */}
+      <Fade delay={130}>
+        <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:24}}>
 
-  return(<div style={S.app}>{showSettings&&renderSettings()}{showChat&&sel&&<ChatPanel area={ar} areaData={dt} apiKey={apiKey} onClose={()=>setShowChat(false)} onSave={handleChatSave} logToSheet={logToSheet}/>}<ReminderStrip/><div style={{padding:"16px 20px 72px"}}>{view==="mirror"&&renderMirror()}{view==="dashboard"&&renderDash()}{view==="stick"&&sel&&renderStick()}{view==="pivot"&&sel&&renderPivot()}{view==="focus"&&sel&&renderFocus()}{view==="declare"&&sel&&renderDeclare()}{view==="declog"&&sel&&renderDecLog()}{view==="wheellog"&&sel&&renderWheelLog()}{view==="proof"&&sel&&renderProof()}{view==="chatlog"&&sel&&renderChatLog()}</div></div>);
+          {/* Placemat */}
+          <button style={S.toolCard} onClick={() => { setPmMine([]); setPmUni([]); setPmInp(""); go("placemat"); }}>
+            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>☐</span>
+            <div>
+              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Today's Placemat</div>
+              <div style={{fontSize:12, color:"#8a857e"}}>Your side and the universe's side. Plan your day with less resistance.</div>
+            </div>
+          </button>
+
+          {/* Focus Wheel */}
+          <button style={S.toolCard} onClick={() => go("focus")}>
+            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>◎</span>
+            <div>
+              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Focus Wheel</div>
+              <div style={{fontSize:12, color:"#8a857e"}}>Place your desire at center. Build momentum with comfortable thoughts.{dt.currentWheel.center ? ` Active: "${dt.currentWheel.center}"` : ""}</div>
+            </div>
+          </button>
+
+          {/* Chat */}
+          <button style={S.toolCard} onClick={() => setShowChat(true)}>
+            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>◌</span>
+            <div>
+              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Work this with me</div>
+              <div style={{fontSize:12, color:"#8a857e"}}>Talk it through with a coach who knows the teachings.{(dt.chats||[]).length>0?` ${(dt.chats||[]).length} past sessions.`:""}</div>
+            </div>
+          </button>
+
+        </div>
+      </Fade>
+
+      {/* History links */}
+      <Fade delay={200}>
+        <div style={{display:"flex", justifyContent:"center", gap:7, flexWrap:"wrap", marginBottom:16}}>
+          {dt.focusWheels.length > 0 && <button style={S.tBtn} onClick={() => go("wheellog")}>Past Wheels ({dt.focusWheels.length})</button>}
+          {(dt.chats||[]).length > 0 && <button style={S.tBtn} onClick={() => go("chatlog")}>Past Sessions ({(dt.chats||[]).length})</button>}
+          {placemats.length > 0 && <button style={S.tBtn} onClick={() => go("pmlog")}>Past Placemats ({placemats.length})</button>}
+        </div>
+      </Fade>
+
+      {/* Footer */}
+      <Fade delay={260}>
+        <div style={{display:"flex", justifyContent:"center", gap:8, flexWrap:"wrap"}}>
+          <button style={S.ghost} onClick={() => go("mirror")}>← Mirror check</button>
+          <button style={{...S.ghost, color:"#357a62"}} onClick={exportCSV}>↓ CSV</button>
+          <button style={S.ghost} onClick={() => {setUrlInp(sheetUrl);setApiKeyInp(apiKey);setShowSettings(true)}}>⚙ Settings{sheetUrl?" ✓":""}</button>
+        </div>
+      </Fade>
+      {syncStatus && <div style={{textAlign:"center",padding:"6px 0",fontSize:11,color:syncStatus==="ok"?"#357a62":"#8b5c5c"}}>{syncStatus==="ok"?"✓ Synced":"✗ Sync failed"}</div>}
+    </div>
+  );
+
+  /* ═══════ RENDER: PLACEMAT ═══════ */
+  const renderPlacemat = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}>
+          <h1 style={S.h1}>Today's Placemat</h1>
+          <p style={S.sub}>Write what feels urgent. Be realistic about what you'll actually do. Move everything else to the universe.</p>
+        </div>
+      </Fade>
+      <Fade delay={100}>
+        <div style={{marginBottom:16}}>
+          <div style={{display:"flex", gap:6, marginBottom:8}}>
+            <button onClick={()=>setPmSide("mine")} style={{padding:"5px 14px",borderRadius:18,border:"1px solid",borderColor:pmSide==="mine"?"#357a62":"#ddd8cf",background:pmSide==="mine"?"#357a6214":"transparent",fontSize:11.5,fontFamily:"'Newsreader',serif",color:pmSide==="mine"?"#357a62":"#807a72",cursor:"pointer"}}>My side</button>
+            <button onClick={()=>setPmSide("universe")} style={{padding:"5px 14px",borderRadius:18,border:"1px solid",borderColor:pmSide==="universe"?"#6b5b95":"#ddd8cf",background:pmSide==="universe"?"#6b5b9514":"transparent",fontSize:11.5,fontFamily:"'Newsreader',serif",color:pmSide==="universe"?"#6b5b95":"#807a72",cursor:"pointer"}}>Universe's side</button>
+          </div>
+          <div style={S.iRow}>
+            <input style={S.ti} value={pmInp} onChange={e=>setPmInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addPmItem()} placeholder={pmSide==="mine"?"Something I'll do today…":"Something I'd like the universe to tend to…"}/>
+            <button style={{...S.plus, background:pmSide==="mine"?"#357a62":"#6b5b95"}} onClick={addPmItem}>+</button>
+          </div>
+        </div>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:20}}>
+          <div>
+            <div style={{fontSize:10.5, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em", color:"#357a62", marginBottom:8, display:"flex", alignItems:"center", gap:6}}>
+              <span style={{width:7, height:7, borderRadius:"50%", background:"#357a62"}}/>
+              I'll do today
+              {pmMine.length > 0 && <span style={{fontWeight:400, opacity:.6, marginLeft:"auto"}}>{pmMine.length}</span>}
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:4, minHeight:60}}>
+              {pmMine.map((item, i) => (
+                <div key={i} style={{fontSize:12.5, lineHeight:1.4, padding:"6px 8px", background:"#f2f7f4", borderRadius:6, borderLeft:"2px solid #357a62", display:"flex", alignItems:"flex-start", gap:4}}>
+                  <span style={{flex:1}}>{item}</span>
+                  <button onClick={()=>movePmItem("mine",i)} title="Move to universe" style={{background:"none",border:"none",fontSize:11,color:"#6b5b95",cursor:"pointer",padding:"0 2px",flexShrink:0}}>→</button>
+                  <button onClick={()=>rmPmItem("mine",i)} style={{background:"none",border:"none",fontSize:13,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+                </div>
+              ))}
+              {pmMine.length === 0 && <p style={{fontSize:11, color:"#b5b0a8", fontStyle:"italic", padding:"8px 0"}}>What will you do today?</p>}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10.5, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em", color:"#6b5b95", marginBottom:8, display:"flex", alignItems:"center", gap:6}}>
+              <span style={{width:7, height:7, borderRadius:"50%", background:"#6b5b95"}}/>
+              Universe's side
+              {pmUni.length > 0 && <span style={{fontWeight:400, opacity:.6, marginLeft:"auto"}}>{pmUni.length}</span>}
+            </div>
+            <div style={{display:"flex", flexDirection:"column", gap:4, minHeight:60}}>
+              {pmUni.map((item, i) => (
+                <div key={i} style={{fontSize:12.5, lineHeight:1.4, padding:"6px 8px", background:"#f3f0f7", borderRadius:6, borderLeft:"2px solid #6b5b95", display:"flex", alignItems:"flex-start", gap:4}}>
+                  <span style={{flex:1}}>{item}</span>
+                  <button onClick={()=>movePmItem("universe",i)} title="Move to mine" style={{background:"none",border:"none",fontSize:11,color:"#357a62",cursor:"pointer",padding:"0 2px",flexShrink:0}}>←</button>
+                  <button onClick={()=>rmPmItem("universe",i)} style={{background:"none",border:"none",fontSize:13,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+                </div>
+              ))}
+              {pmUni.length === 0 && <p style={{fontSize:11, color:"#b5b0a8", fontStyle:"italic", padding:"8px 0"}}>What would you like the universe to tend to?</p>}
+            </div>
+          </div>
+        </div>
+        {(pmMine.length > 0 || pmUni.length > 0) && (
+          <div style={{textAlign:"center"}}>
+            <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:12}}>
+              You get on with your list. The universe gets on with its.
+            </p>
+            <button style={S.pri} onClick={savePlacemat}>Save today's placemat</button>
+          </div>
+        )}
+      </Fade>
+    </div>
+  );
+
+  /* ═══════ RENDER: FOCUS WHEEL ═══════ */
+  const renderFocus = () => {
+    const sts = dt.currentWheel.statements;
+    const ctr = dt.currentWheel.center;
+    const done = sts.length >= 12;
+    return (
+      <div style={S.page}>
+        <Fade>
+          <button style={S.back} onClick={() => go("main")}>← Back</button>
+          <div style={S.ctr}>
+            <h1 style={S.h1}>Focus Wheel</h1>
+            <p style={S.sub}>{sel !== "general" ? `${arObj.label} · ` : ""}Place your desire at center. Reach for thoughts that feel true.</p>
+          </div>
+        </Fade>
+        <Fade delay={100}>
+          <div style={{display:"flex", justifyContent:"center", padding:"6px 0"}}>
+            <svg viewBox="0 0 400 400" style={{width:"100%", maxWidth:320}}>
+              <circle cx="200" cy="200" r="188" fill="none" stroke="#ccc8c0" strokeWidth="1"/>
+              <circle cx="200" cy="200" r="140" fill="none" stroke="#ccc8c0" strokeWidth=".8"/>
+              {Array.from({length:12}).map((_,i) => {
+                const a = (i*30-90)*(Math.PI/180);
+                return <line key={i} x1={200+140*Math.cos(a)} y1={200+140*Math.sin(a)} x2={200+188*Math.cos(a)} y2={200+188*Math.sin(a)} stroke="#ccc8c0" strokeWidth=".8"/>;
+              })}
+              {sts.map((_,i) => {
+                const s = (i*30-90)*(Math.PI/180);
+                const e = ((i+1)*30-90)*(Math.PI/180);
+                const op = .15+(i/12)*.4;
+                return <path key={i} d={`M${200+140*Math.cos(s)} ${200+140*Math.sin(s)} L${200+188*Math.cos(s)} ${200+188*Math.sin(s)} A188 188 0 0 1 ${200+188*Math.cos(e)} ${200+188*Math.sin(e)} L${200+140*Math.cos(e)} ${200+140*Math.sin(e)} A140 140 0 0 0 ${200+140*Math.cos(s)} ${200+140*Math.sin(s)}Z`} fill={`rgba(53,122,98,${op})`} stroke="rgba(53,122,98,.25)" strokeWidth=".5"/>;
+              })}
+              <circle cx="200" cy="200" r="64" fill="#ece8e0" stroke="#b8b3ab" strokeWidth=".8"/>
+              {ctr && <foreignObject x="140" y="170" width="120" height="60"><div style={{fontSize:12.5,color:"#1e1c1a",textAlign:"center",lineHeight:1.3,fontFamily:"'Cormorant Garamond',serif",fontWeight:600,padding:"0 4px"}}>{ctr}</div></foreignObject>}
+              {Array.from({length:12}).map((_,i) => {
+                const m = ((i+.5)*30-90)*(Math.PI/180);
+                return <text key={i} x={200+164*Math.cos(m)} y={200+164*Math.sin(m)} textAnchor="middle" dominantBaseline="middle" fontSize="10.5" fontWeight={i<sts.length?"700":"400"} fill={i<sts.length?"#1e5040":"#b5b0a8"} fontFamily="'Newsreader',serif">{i+1}</text>;
+              })}
+            </svg>
+          </div>
+        </Fade>
+        <Fade delay={170}>
+          {showCP && sts.length >= 6 && !done && (
+            <div style={{background:"#f6f3ee",borderRadius:12,padding:"16px 18px",marginBottom:14,border:"1px solid #e8e4dd",textAlign:"center"}}>
+              <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:"#1e1c1a",marginBottom:4}}>Halfway check</p>
+              <p style={{fontSize:13,color:"#5a5650",lineHeight:1.5,marginBottom:10}}>Are you still putting something down, or does it feel like something's pulling you forward?</p>
+              <button style={{...S.ghost,color:"#357a62",fontSize:12}} onClick={()=>setShowCP(false)}>I feel it shifting — keep going</button>
+            </div>
+          )}
+          {!ctr ? (
+            <div style={{marginTop:4,marginBottom:12}}>
+              <label style={{fontSize:13,color:"#5a5650",display:"block",marginBottom:8}}>Your desire — the center of the wheel</label>
+              <div style={S.iRow}>
+                <input style={S.ti} value={fCInp} onChange={e=>setFCInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&setCtr()} placeholder="I am financially free…"/>
+                <button style={{...S.plus, background:"#357a62"}} onClick={setCtr}>Set</button>
+              </div>
+            </div>
+          ) : !done ? (
+            <div style={{marginTop:4,marginBottom:12}}>
+              <label style={{fontSize:13,color:"#5a5650",display:"block",marginBottom:8}}>Segment {sts.length+1} of 12 — a thought that brings comfort</label>
+              <div style={S.iRow}>
+                <input style={S.ti} value={fInp} onChange={e=>setFInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addFS()} placeholder="A thought that soothes…"/>
+                <button style={{...S.plus, background:"#357a62"}} onClick={addFS}>+</button>
+              </div>
+            </div>
+          ) : (
+            <div style={{textAlign:"center", marginTop:4, marginBottom:12}}>
+              <p style={{fontFamily:"'Cormorant Garamond',serif",fontSize:15,color:"#357a62",fontStyle:"italic",marginBottom:12}}>Your wheel is complete. How does it feel?</p>
+              <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
+                <button style={S.pri} onClick={() => completeWheel(false)}>Save and return ↗</button>
+                <button style={S.sec} onClick={() => completeWheel(true)}>Start another wheel</button>
+              </div>
+            </div>
+          )}
+          {sts.length > 0 && (
+            <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:3}}>
+              {sts.map((s,i) => (
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9,fontSize:13,lineHeight:1.5,padding:"6px 0",borderBottom:"1px solid #eee9e2"}}>
+                  <span style={{fontSize:11,color:"#1e5040",fontWeight:700,minWidth:20,paddingTop:2}}>{i+1}</span>
+                  <span style={{color:"#2a2825"}}>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {ctr && !done && (
+            <div style={{textAlign:"center", marginTop:16}}>
+              <button style={{...S.ghost, fontSize:12}} onClick={resetWheel}>Save & start new wheel</button>
+            </div>
+          )}
+        </Fade>
+      </div>
+    );
+  };
+
+  /* ═══════ RENDER: LOGS ═══════ */
+  const renderWheelLog = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}><h1 style={S.h1}>Past Focus Wheels{sel !== "general" ? ` · ${arObj.label}` : ""}</h1></div>
+      </Fade>
+      <Fade delay={100}>
+        <div style={{maxWidth:480, margin:"0 auto"}}>
+          {dt.focusWheels.length === 0 ? <p style={S.empty}>No completed wheels yet.</p> : dt.focusWheels.map((fw,i) => (
+            <div key={i} style={S.logCard}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                <span style={{fontSize:11,color:"#8a857e"}}>{fw.date} {fw.time}</span>
+                <span style={{fontSize:9.5,color:"#357a62",textTransform:"uppercase",letterSpacing:".06em"}}>{fw.statements.length} seg</span>
+              </div>
+              <div style={{fontSize:13,fontWeight:500,marginBottom:6,color:"#1e1c1a"}}>Center: {fw.center}</div>
+              {fw.statements.map((s,j) => (
+                <div key={j} style={{fontSize:13,lineHeight:1.5,color:"#3a3733",paddingLeft:8,marginBottom:2}}>
+                  <span style={{color:"#357a62",fontWeight:500,marginRight:6}}>{j+1}.</span>{s}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </Fade>
+    </div>
+  );
+
+  const renderChatLog = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}><h1 style={S.h1}>Past Sessions{sel !== "general" ? ` · ${arObj.label}` : ""}</h1></div>
+      </Fade>
+      <Fade delay={100}>
+        <div style={{maxWidth:480, margin:"0 auto"}}>
+          {(dt.chats||[]).length === 0 ? <p style={S.empty}>No coaching sessions yet.</p> : [...(dt.chats||[])].reverse().map((ch,i) => (
+            <div key={i} style={S.logCard}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                <span style={{fontSize:11,color:"#8a857e"}}>{ch.date}</span>
+                <span style={{fontSize:9.5,color:"#357a62",textTransform:"uppercase",letterSpacing:".06em"}}>{ch.messages?.length||0} messages</span>
+              </div>
+              <div style={{fontSize:13,lineHeight:1.55,color:"#3a3733"}}>{ch.summary}</div>
+            </div>
+          ))}
+        </div>
+      </Fade>
+    </div>
+  );
+
+  const renderPmLog = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}><h1 style={S.h1}>Past Placemats</h1></div>
+      </Fade>
+      <Fade delay={100}>
+        <div style={{maxWidth:480, margin:"0 auto"}}>
+          {placemats.length === 0 ? <p style={S.empty}>No placemats yet.</p> : placemats.map((pm, i) => (
+            <div key={i} style={S.logCard}>
+              <div style={{display:"flex", justifyContent:"space-between", marginBottom:10}}>
+                <span style={{fontSize:11, color:"#8a857e"}}>{pm.date} {pm.time}</span>
+                <span style={{fontSize:9.5, color:"#357a62", textTransform:"uppercase", letterSpacing:".06em"}}>{pm.mine.length} mine · {pm.universe.length} universe</span>
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+                <div>
+                  <div style={{fontSize:9.5, fontWeight:600, color:"#357a62", textTransform:"uppercase", letterSpacing:".05em", marginBottom:4}}>Mine</div>
+                  {pm.mine.map((item, j) => <div key={j} style={{fontSize:12, lineHeight:1.4, color:"#3a3733", marginBottom:2}}>• {item}</div>)}
+                </div>
+                <div>
+                  <div style={{fontSize:9.5, fontWeight:600, color:"#6b5b95", textTransform:"uppercase", letterSpacing:".05em", marginBottom:4}}>Universe</div>
+                  {pm.universe.map((item, j) => <div key={j} style={{fontSize:12, lineHeight:1.4, color:"#3a3733", marginBottom:2}}>• {item}</div>)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Fade>
+    </div>
+  );
+
+  /* ═══════ ROUTER ═══════ */
+  return (
+    <div style={S.app}>
+      {showSettings && renderSettings()}
+      {showChat && <ChatPanel areaId={sel} areaLabel={arObj.label} areaData={dt} apiKey={apiKey} onClose={()=>setShowChat(false)} onSave={handleChatSave} logToSheet={logToSheet}/>}
+      <ReminderStrip/>
+      <div style={{padding:"16px 20px 72px"}}>
+        {view === "mirror" && renderMirror()}
+        {view === "main" && renderMain()}
+        {view === "placemat" && renderPlacemat()}
+        {view === "focus" && renderFocus()}
+        {view === "wheellog" && renderWheelLog()}
+        {view === "chatlog" && renderChatLog()}
+        {view === "pmlog" && renderPmLog()}
+      </div>
+    </div>
+  );
 }
 
-const S={app:{fontFamily:"'Newsreader',Georgia,serif",background:"#faf8f3",minHeight:"100vh",color:"#2a2825",maxWidth:700,margin:"0 auto"},mirrorW:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"80vh",textAlign:"center"},mirrorH:{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:400,margin:"0 0 12px",letterSpacing:"-.03em",color:"#1e1c1a"},mirrorS:{fontSize:15,color:"#5a5650",lineHeight:1.6,margin:"0 0 40px"},emScaleWrap:{width:"100%",maxWidth:480},emScaleBar:{display:"flex",alignItems:"center",gap:10,marginBottom:12},scE:{fontSize:9.5,textTransform:"uppercase",letterSpacing:".1em",color:"#9e9890"},scL:{flex:1,height:1,background:"linear-gradient(90deg,#8b5c5c30,#357a6230)"},emGrid:{display:"flex",flexWrap:"wrap",gap:7,justifyContent:"center"},emBtn:{display:"flex",alignItems:"center",gap:7,padding:"9px 14px",border:"1px solid #ddd8cf",borderRadius:8,background:"transparent",cursor:"pointer",fontSize:13,color:"#2a2825",fontFamily:"'Newsreader',serif",transition:"all .2s",whiteSpace:"nowrap"},mirrorHint:{fontSize:15,color:"#8a857e",marginTop:48,fontStyle:"italic",fontFamily:"'Cormorant Garamond',serif"},page:{paddingTop:4},ctr:{textAlign:"center",marginBottom:20},h1:{fontFamily:"'Cormorant Garamond',serif",fontSize:25,fontWeight:400,margin:"0 0 6px",letterSpacing:"-.02em",color:"#1e1c1a"},sub:{fontSize:14,color:"#5a5650",lineHeight:1.6,margin:0},back:{background:"none",border:"none",color:"#5a5650",fontSize:13,cursor:"pointer",fontFamily:"'Newsreader',serif",padding:"4px 0",marginBottom:16},ghost:{display:"block",margin:"0 auto",background:"none",border:"none",color:"#8a857e",fontSize:13,cursor:"pointer",fontFamily:"'Newsreader',serif",padding:8},empty:{fontSize:14.5,color:"#8a857e",fontStyle:"italic",textAlign:"center",padding:"32px 0",fontFamily:"'Cormorant Garamond',serif"},pri:{padding:"10px 22px",border:"none",borderRadius:9,background:"#357a62",color:"#fff",fontSize:13,cursor:"pointer",fontFamily:"'Newsreader',serif",transition:"all .2s"},sec:{padding:"10px 22px",border:"1px solid #c5c0b8",borderRadius:9,background:"transparent",color:"#3a3733",fontSize:13,cursor:"pointer",fontFamily:"'Newsreader',serif"},dGrid:{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:11,marginBottom:20},dCard:{position:"relative",background:"#fff",border:"1px solid #e8e4dd",borderRadius:12,padding:"20px 14px 16px",cursor:"pointer",textAlign:"left",fontFamily:"'Newsreader',serif",transition:"all .25s",boxShadow:"0 1px 10px rgba(0,0,0,.05)",display:"flex",flexDirection:"column",gap:4,width:"100%"},actDot:{position:"absolute",top:10,right:10,width:5,height:5,borderRadius:"50%",background:"#357a62"},dTop:{display:"flex",alignItems:"center",gap:8},dIcon:{fontSize:16,color:"#9e9890"},dLabel:{fontSize:14,fontWeight:500,color:"#1e1c1a"},dEm:{fontSize:11.5,marginLeft:24},sHead:{display:"flex",alignItems:"center",gap:10,marginBottom:2},sIco:{fontSize:18,color:"#9e9890"},sSub:{fontSize:15,color:"#5a5650",lineHeight:1.55,margin:"0 0 20px",fontStyle:"italic",fontFamily:"'Cormorant Garamond',serif"},emRow:{marginBottom:20},emRowLbl:{fontSize:13,color:"#5a5650",display:"block",marginBottom:8},emRowPills:{display:"flex",gap:5,flexWrap:"wrap"},emPill:{padding:"4px 11px",borderRadius:18,border:"1px solid #ddd8cf",fontSize:11.5,cursor:"pointer",fontFamily:"'Newsreader',serif",transition:"all .2s",background:"transparent"},stickBox:{display:"grid",gridTemplateColumns:"1fr 28px 1fr",background:"#fff",borderRadius:14,border:"1px solid #e8e4dd",padding:"20px 14px",marginBottom:16,boxShadow:"0 1px 10px rgba(0,0,0,.04)"},sideCol:{display:"flex",flexDirection:"column",gap:12},sideHd:{fontSize:10.5,fontWeight:600,textTransform:"uppercase",letterSpacing:".06em",display:"flex",alignItems:"center",gap:6,marginBottom:2},stickMid:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:4},stickLn:{width:1,flex:1,background:"#e8e4dd"},stickG:{fontSize:11,color:"#ccc8c0"},dimB:{display:"flex",flexDirection:"column",gap:4},dimH:{fontSize:10,color:"#8a857e",fontWeight:500,textTransform:"uppercase",letterSpacing:".05em"},chip:{fontSize:12.5,lineHeight:1.4,padding:"4px 6px",borderLeft:"2px solid",background:"#f7f5f0",borderRadius:"0 5px 5px 0",display:"flex",alignItems:"flex-start",gap:3,color:"#2a2825"},rmB:{background:"none",border:"none",color:"#c5c0b8",cursor:"pointer",fontSize:14,padding:"0 2px",lineHeight:1,fontFamily:"sans-serif"},addL:{background:"none",border:"none",fontSize:11,cursor:"pointer",fontFamily:"'Newsreader',serif",textAlign:"left",padding:"1px 0",opacity:.6},iRow:{display:"flex",gap:6},ti:{flex:1,padding:"8px 10px",border:"1px solid #ddd8cf",borderRadius:7,fontSize:13,fontFamily:"'Newsreader',serif",background:"#fff",color:"#2a2825",boxSizing:"border-box"},plus:{padding:"7px 13px",border:"none",borderRadius:7,color:"#fff",fontSize:16,cursor:"pointer",fontFamily:"sans-serif",lineHeight:1},tiltSection:{textAlign:"center",padding:"12px 0 4px"},tiltQ:{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#1e1c1a",marginBottom:14},tiltWrap:{display:"flex",alignItems:"center",gap:12,maxWidth:400,margin:"0 auto",padding:"0 4px"},tiltEnd:{fontSize:10,textTransform:"uppercase",letterSpacing:".08em",color:"#8a857e",whiteSpace:"nowrap"},tiltLabel:{fontSize:12.5,marginTop:8,marginBottom:4,fontWeight:500},tiltHint:{fontSize:14,color:"#5a5650",lineHeight:1.6,fontStyle:"italic",fontFamily:"'Cormorant Garamond',serif",maxWidth:420,margin:"0 auto 14px"},tiltActs:{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap",marginTop:4},tBar:{display:"flex",justifyContent:"center",gap:7,padding:"14px 0",borderTop:"1px solid #e8e4dd",flexWrap:"wrap"},tBtn:{padding:"8px 16px",border:"1px solid #ddd8cf",borderRadius:8,background:"#fff",fontSize:12,cursor:"pointer",fontFamily:"'Newsreader',serif",color:"#3a3733"},pvCard:{background:"#fff",borderRadius:16,border:"1px solid #e8e4dd",padding:"32px 24px 24px",maxWidth:460,margin:"0 auto",textAlign:"center",boxShadow:"0 2px 18px rgba(0,0,0,.05)"},pvProg:{display:"flex",justifyContent:"center",gap:7,marginBottom:18},pvDt:{width:7,height:7,borderRadius:"50%",transition:"background .3s"},pvSN:{fontSize:10.5,color:"#8a857e",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6},pvTi:{fontFamily:"'Cormorant Garamond',serif",fontSize:23,fontWeight:400,margin:"0 0 14px",color:"#1e1c1a"},pvBo:{fontSize:14,lineHeight:1.7,color:"#3a3733",margin:"0 0 18px"},pvList:{display:"flex",flexDirection:"column",gap:5,margin:"0 0 18px",textAlign:"left"},pvIt:{fontSize:13,padding:"7px 11px",borderLeft:"2px solid #357a62",background:"#f2f7f4",borderRadius:"0 7px 7px 0",color:"#2a2825",lineHeight:1.4},pvPr:{fontSize:14.5,color:"#357a62",fontStyle:"italic",margin:"0 0 14px",fontFamily:"'Cormorant Garamond',serif"},pvNav:{display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"},wW:{display:"flex",justifyContent:"center",padding:"6px 0"},wS:{width:"100%",maxWidth:320},fSec:{marginTop:4,marginBottom:12},fLbl:{fontSize:13,color:"#5a5650",display:"block",marginBottom:8},fList:{marginTop:12,display:"flex",flexDirection:"column",gap:3},fItem:{display:"flex",alignItems:"flex-start",gap:9,fontSize:13,lineHeight:1.5,padding:"6px 0",borderBottom:"1px solid #eee9e2"},fNum:{fontSize:11,color:"#1e5040",fontWeight:700,minWidth:20,paddingTop:2},dclCd:{background:"#fff",borderRadius:14,border:"1px solid #e8e4dd",padding:"24px 22px",maxWidth:480,margin:"0 auto",boxShadow:"0 1px 12px rgba(0,0,0,.04)"},dclF:{marginBottom:16},dclL:{fontSize:14.5,color:"#3a3733",display:"block",marginBottom:6,fontFamily:"'Cormorant Garamond',serif",fontWeight:500},dclTa:{width:"100%",padding:"9px 11px",border:"1px solid #ddd8cf",borderRadius:8,fontSize:13,fontFamily:"'Newsreader',serif",background:"#faf8f3",color:"#2a2825",resize:"vertical",lineHeight:1.5,boxSizing:"border-box"},dclLog:{maxWidth:480,margin:"0 auto"},dclLI:{background:"#fff",borderRadius:11,border:"1px solid #e8e4dd",padding:"16px 18px",marginBottom:9,boxShadow:"0 1px 6px rgba(0,0,0,.03)"},dclM:{display:"flex",justifyContent:"space-between",marginBottom:8},dclDt:{fontSize:11,color:"#8a857e"},dclSr:{fontSize:9.5,color:"#357a62",textTransform:"uppercase",letterSpacing:".06em"},dclDm:{fontSize:13,lineHeight:1.5,color:"#3a3733",marginBottom:3},dclDmL:{fontWeight:500,color:"#1e1c1a",fontFamily:"'Cormorant Garamond',serif",fontSize:13.5},prList:{marginTop:16,display:"flex",flexDirection:"column",gap:7},prI:{display:"flex",flexDirection:"column",gap:2,padding:"11px 13px",background:"#fff",borderRadius:9,border:"1px solid #e8e4dd",fontSize:13,lineHeight:1.5,color:"#2a2825"},prD:{fontSize:11,color:"#8a857e"}};
+/* ═══════ STYLES ═══════ */
+const S = {
+  app: {fontFamily:"'Newsreader',Georgia,serif", background:"#faf8f3", minHeight:"100vh", color:"#2a2825", maxWidth:700, margin:"0 auto"},
+  mirrorW: {display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"80vh", textAlign:"center"},
+  mirrorH: {fontFamily:"'Cormorant Garamond',serif", fontSize:30, fontWeight:400, margin:"0 0 12px", letterSpacing:"-.03em", color:"#1e1c1a"},
+  mirrorS: {fontSize:15, color:"#5a5650", lineHeight:1.6, margin:"0 0 32px"},
+  scE: {fontSize:9.5, textTransform:"uppercase", letterSpacing:".1em", color:"#9e9890"},
+  mirrorHint: {fontSize:15, color:"#8a857e", marginTop:36, fontStyle:"italic", fontFamily:"'Cormorant Garamond',serif"},
+  page: {paddingTop:4},
+  ctr: {textAlign:"center", marginBottom:20},
+  h1: {fontFamily:"'Cormorant Garamond',serif", fontSize:25, fontWeight:400, margin:"0 0 6px", letterSpacing:"-.02em", color:"#1e1c1a"},
+  sub: {fontSize:14, color:"#5a5650", lineHeight:1.6, margin:0},
+  back: {background:"none", border:"none", color:"#5a5650", fontSize:13, cursor:"pointer", fontFamily:"'Newsreader',serif", padding:"4px 0", marginBottom:16},
+  ghost: {display:"block", margin:"0 auto", background:"none", border:"none", color:"#8a857e", fontSize:13, cursor:"pointer", fontFamily:"'Newsreader',serif", padding:8},
+  empty: {fontSize:14.5, color:"#8a857e", fontStyle:"italic", textAlign:"center", padding:"32px 0", fontFamily:"'Cormorant Garamond',serif"},
+  pri: {padding:"10px 22px", border:"none", borderRadius:9, background:"#357a62", color:"#fff", fontSize:13, cursor:"pointer", fontFamily:"'Newsreader',serif", transition:"all .2s"},
+  sec: {padding:"10px 22px", border:"1px solid #c5c0b8", borderRadius:9, background:"transparent", color:"#3a3733", fontSize:13, cursor:"pointer", fontFamily:"'Newsreader',serif"},
+  dGrid: {display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:11, marginBottom:20},
+  toolCard: {display:"flex", alignItems:"flex-start", gap:14, padding:"18px 18px", background:"#fff", border:"1px solid #e8e4dd", borderRadius:12, cursor:"pointer", fontFamily:"'Newsreader',serif", textAlign:"left", transition:"all .2s", boxShadow:"0 1px 8px rgba(0,0,0,.04)", width:"100%"},
+  tBtn: {padding:"8px 16px", border:"1px solid #ddd8cf", borderRadius:8, background:"#fff", fontSize:12, cursor:"pointer", fontFamily:"'Newsreader',serif", color:"#3a3733"},
+  logCard: {background:"#fff", borderRadius:11, border:"1px solid #e8e4dd", padding:"16px 18px", marginBottom:9, boxShadow:"0 1px 6px rgba(0,0,0,.03)"},
+  iRow: {display:"flex", gap:6},
+  ti: {flex:1, padding:"8px 10px", border:"1px solid #ddd8cf", borderRadius:7, fontSize:13, fontFamily:"'Newsreader',serif", background:"#fff", color:"#2a2825", boxSizing:"border-box"},
+  plus: {padding:"7px 13px", border:"none", borderRadius:7, color:"#fff", fontSize:16, cursor:"pointer", fontFamily:"sans-serif", lineHeight:1},
+  dCard: {position:"relative", background:"#fff", border:"1px solid #e8e4dd", borderRadius:12, padding:"20px 14px 16px", cursor:"pointer", textAlign:"left", fontFamily:"'Newsreader',serif", transition:"all .25s", boxShadow:"0 1px 10px rgba(0,0,0,.05)", display:"flex", flexDirection:"column", gap:4, width:"100%"},
+  actDot: {position:"absolute", top:10, right:10, width:5, height:5, borderRadius:"50%", background:"#357a62"},
+  dTop: {display:"flex", alignItems:"center", gap:8},
+  dIcon: {fontSize:16, color:"#9e9890"},
+  dLabel: {fontSize:14, fontWeight:500, color:"#1e1c1a"},
+  dEm: {fontSize:11.5, marginLeft:24},
+};
 
 ReactDOM.createRoot(document.getElementById("root")).render(<LifeMirror/>);
 </script>
