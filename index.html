@@ -314,7 +314,7 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
     } catch {}
     const chatEntry = {date: new Date().toLocaleDateString(), messages: currentMsgs, summary};
     onSave(chatEntry);
-    logToSheet("Chat", {content: summary});
+    await logToSheet("Chat", {sideSource: shameBuster ? "Shame Buster" : "", dimension:`${currentMsgs.length} messages`, content:summary, content2:"", content3:"", tilt:""});
     setClosing(false);
     onClose();
   };
@@ -421,13 +421,14 @@ function LifeMirror() {
   const postToSheet = useCallback(async payload => {
     if (!sheetUrl) return;
     try {
-      await fetch(sheetUrl, {method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"life_mirror", ...payload})});
+      const body = JSON.stringify({type:"life_mirror", ...payload});
+      await fetch(sheetUrl, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"}, body});
       setSyncStatus("ok"); setTimeout(() => setSyncStatus(null), 2000);
-    } catch { setSyncStatus("err"); setTimeout(() => setSyncStatus(null), 3000); }
+    } catch(e) { console.error("Sheet sync error:", e); setSyncStatus("err"); setTimeout(() => setSyncStatus(null), 3000); }
   }, [sheetUrl]);
 
   const logToSheet = useCallback((t, x={}) => {
-    postToSheet({timestamp:now(), area:arObj.label, entryType:t, emotion:egsL(dt.emotion), ...x});
+    return postToSheet({timestamp:now(), area:arObj.label, entryType:t, emotion:egsL(dt.emotion), ...x});
   }, [sel, areas, postToSheet, arObj, dt]);
 
   const handleChatSave = useCallback((chatEntry) => {
