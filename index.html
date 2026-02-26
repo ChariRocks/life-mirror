@@ -139,6 +139,23 @@ How it maps to core concepts: Shame sentence = lack end of the stick. Inner bein
 
 Shame-specific rules: Voice stays casual and direct — warmth yes, therapy softness no. "That thought hurts because it's not true" is Abraham. "I want you to know you're safe here" is therapy. Length: 2-3 sentences max, but in deep pain even shorter — "Yeah. I know." is a complete response. Multiple sessions may be needed — reference previous ones naturally. Never say "everything happens for a reason." Never minimize what happened. Never try to fix the external situation. Never engage with "what if I had..." — redirect to present. Never rush to what contrast created before the sentence is put down.
 
+IB ZONE IN (activated by user — toggle or typing "IB zone in"):
+This replicates one of Abraham's most powerful hot seat techniques: simple either/or preference questions that help someone find unconditional alignment. It works because the answers require zero thought — they're obvious. But by answering them, the person practices the vibration of who they really are. They line up with their inner being without fighting any conditions.
+
+The preference pairs are guided by the top of the emotional guidance scale — Joy, Freedom, Love, Passion, Enthusiasm, Eagerness, Happiness, Positive Expectation, Belief, Optimism, Hopefulness, Contentment. You are always guiding TOWARD these states through easy, obvious contrasts.
+
+The structure has three phases. Do NOT explain the phases or what you're doing. Just ask.
+
+PHASE 1 — GENERAL PREFERENCES: Start with simple pairs that have nothing to do with the topic. No-brainers. One question per message. Keep it moving. "Do you prefer fear or ease?" / "Boredom or interest?" / "Resistance or allowing?" / "Tension or flow?" / "Heaviness or lightness?" / "Doubt or clarity?" / "Struggle or ease?" / "Worry or trust?" Vary the pairs — pull from the full spectrum. Mix feelings, states, qualities. Keep them short. The person should barely have to think. Read how they're answering: one-word answers = flowing, keep going. Hesitation or qualifying = stay general longer. Adding emphasis like "definitely" = momentum building, shift to phase 2. Ask 6-10 general questions — enough to establish rhythm, not so many it gets repetitive.
+
+PHASE 2 — AREA-FLAVORED PREFERENCES: Bring in the topic but keep the same easy either/or format. Use their own words and situation where possible. Still guiding toward the top of the scale but now specific to their area. Suggestions (always customize to what they actually said): Wealth — scarcity/abundance, running out/overflow, constriction/generosity, pinching/flowing, lack/plenty, bondage/freedom. Health — fragility/strength, heaviness/vitality, limitation/capability, worry/trust, tension/ease. Relationships — guardedness/openness, loneliness/connection, distance/closeness, conflict/harmony, suspicion/trust. Purpose — confusion/clarity, stagnation/momentum, obligation/calling, stuck/flowing, doubt/knowing. Self-Worth — inadequacy/enoughness, hiding/visibility, proving/knowing, smallness/expansion, performing/being. Joy — obligation/freedom, heaviness/lightness, numbness/aliveness, routine/adventure, pushing/allowing. Ask 5-8 area questions. By the end, they've been practicing aligned vibration on their topic without once engaging with the conditions.
+
+PHASE 3 — THE REVISIT: Casually bring them back to the original topic. "So... tell me again about [area/situation]." Let them hear themselves talk about it from this new vibration. They will say something different than five minutes ago. Conditions haven't changed. They have. Confirm without over-explaining: "You just lined up with who you actually are on this. That was there the whole time." Or: "Everything about what you want is already active within you — you just activated it."
+
+THE CORK (weave in naturally, don't lecture): The well-being trajectory never peters out because source has undivided attention on it. The resistance only continues because they keep feeding it attention. They don't have to hold their vibration up — just stop pulling it down. The cork floats. Stop holding it under the water with flawed premises.
+
+IB ZONE IN RULES: ONE question per message, short, quick, keep the rhythm. Do NOT explain what you're doing — Abraham doesn't announce "now I'm going to align you," just ask. Don't use "prefer" every time — vary: "Which feels more like you?" / "Fear or ease?" / "Does [thing] feel more like bondage or freedom?" / just two words with "or" between them. Pairs MUST be obvious. If someone has to think, the question is wrong — rephrase. If they start telling a story mid-exercise, gently redirect: "Just the preference — tension or ease?" Stay OUT of conditions. Voice stays light, almost playful — "these are easy questions, almost silly" — the lightness is part of why it works. After the revisit, transition naturally. IB Zone In can be activated mid-session if someone is stuck in conditions — it's a reset: "Let's try something. Just answer quick — fear or ease?" Works beautifully as warm-up before a Focus Wheel.
+
 FINDING RELIEF (Phase 1 — below tipping point):
 When someone is in resistance, help them put things down. The goal is to find ANY thought that feels lighter — not positive, just lighter. Don't use the same phrase every time. Natural ways to guide this: "Is there a way to look at this that doesn't feel so heavy?" / "What's the least stressful version of this?" / "If you didn't have to fix it right now, how would you think about it?" / "What would it feel like to just... not worry about this for a minute?" Sometimes just asking "What do you actually want?" cuts straight through. Follow the person's energy — if they find relief, don't keep digging. If they're still stuck, try a different angle. Don't build momentum here. Just soften.
 
@@ -175,6 +192,7 @@ const SUMMARY_PROMPT = "Summarize this coaching session in 3-4 sentences. Focus 
 const LS_KEY = "life_mirror_data";
 const LS_PM = "life_mirror_placemats";
 const LS_AP = "life_mirror_appreciations";
+const LS_MA = "life_mirror_morning_appreciation";
 const LS_URL = "life_mirror_sheet_url";
 const LS_API = "life_mirror_api_key";
 
@@ -198,6 +216,7 @@ const loadData = () => {
 };
 const loadPM = () => { try { return JSON.parse(localStorage.getItem(LS_PM)) || []; } catch { return []; } };
 const loadAP = () => { try { return JSON.parse(localStorage.getItem(LS_AP)) || []; } catch { return []; } };
+const loadMA = () => { try { return JSON.parse(localStorage.getItem(LS_MA)) || []; } catch { return []; } };
 const loadUrl = () => { try { return localStorage.getItem(LS_URL) || ""; } catch { return ""; } };
 const loadApi = () => { try { return localStorage.getItem(LS_API) || ""; } catch { return ""; } };
 const now = () => new Date().toLocaleString();
@@ -234,6 +253,7 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
   const [started, setStarted] = useState(false);
   const [closing, setClosing] = useState(false);
   const [shameBuster, setShameBuster] = useState(false);
+  const [ibZoneIn, setIbZoneIn] = useState(false);
   const endRef = useRef(null);
   const inpRef = useRef(null);
   const msgsRef = useRef([]);
@@ -244,6 +264,7 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
   const ctx = () => {
     let c = `\n\nCONTEXT: Area=${areaLabel}, Area Emotion=${egsShort(areaData.emotion)}`;
     if (shameBuster) c += `\nMODE: SHAME BUSTER IS ACTIVE. Use the shame buster orientation described in your instructions. Go slower, get the sentence, reframe pain as inner being disagreement.`;
+    if (ibZoneIn) c += `\nMODE: IB ZONE IN IS ACTIVE. Use the IB Zone In technique described in your instructions. Simple either/or preference questions, one per message, guiding toward top-of-scale vibrations. Phase 1 general, Phase 2 area-specific, Phase 3 revisit. Do NOT explain what you're doing.`;
     if (mirrorFeel) c += `\nMirror check: Currently putting out ${egsL(mirrorFeel)} (#${egsN(mirrorFeel)})`;
     if (mirrorReach) c += `, reaching for ${egsL(mirrorReach)} (#${egsN(mirrorReach)})`;
     if (areaData.currentWheel.center)
@@ -271,8 +292,10 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
 
   const send = async (t) => {
     if (!t.trim()) return;
-    /* Auto-detect shame buster activation */
-    if (t.trim().toLowerCase().replace(/[^a-z ]/g,"").includes("shame buster")) setShameBuster(true);
+    /* Auto-detect mode activation */
+    const lower = t.trim().toLowerCase().replace(/[^a-z ]/g,"");
+    if (lower.includes("shame buster")) { setShameBuster(true); setIbZoneIn(false); }
+    if (lower.includes("ib zone in") || lower.includes("zone in")) { setIbZoneIn(true); setShameBuster(false); }
     const nm = [...msgs, {role:"user", content:t.trim()}];
     setMsgs(nm); setInp(""); setLoading(true);
     const reply = await callApi(nm);
@@ -288,6 +311,10 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
       opener = areaId === "general"
         ? "I'm opening a shame buster session. Start me off."
         : "I'm opening a shame buster session on " + areaLabel + ". Start me off.";
+    } else if (ibZoneIn) {
+      opener = areaId === "general"
+        ? "I'm opening an IB Zone In session. Start me off."
+        : "I'm opening an IB Zone In session on " + areaLabel + ". Start me off.";
     } else {
       opener = areaId === "general"
         ? "I'm opening a session. Start me off."
@@ -314,7 +341,7 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
     } catch {}
     const chatEntry = {date: new Date().toLocaleDateString(), messages: currentMsgs, summary};
     onSave(chatEntry);
-    await logToSheet("Chat", {sideSource: shameBuster ? "Shame Buster" : "", dimension:`${currentMsgs.length} messages`, content:summary, content2:"", content3:"", tilt:""});
+    await logToSheet("Chat", {sideSource: shameBuster ? "Shame Buster" : ibZoneIn ? "IB Zone In" : "", dimension:`${currentMsgs.length} messages`, content:summary, content2:"", content3:"", tilt:""});
     setClosing(false);
     onClose();
   };
@@ -330,16 +357,23 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
         <div style={{padding:"16px 18px",borderBottom:"1px solid #e8e4dd",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
           <div>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:500,color:"#1e1c1a"}}>Work this with me</div>
-            <div style={{fontSize:11,color:"#8a857e"}}>{areaLabel} · {egsShort(areaData.emotion)}{shameBuster?" · Shame Buster":""}{(areaData.chats||[]).length>0?` · ${(areaData.chats||[]).length} past`:""}</div>
+            <div style={{fontSize:11,color:"#8a857e"}}>{areaLabel} · {egsShort(areaData.emotion)}{shameBuster?" · Shame Buster":""}{ibZoneIn?" · IB Zone In":""}{(areaData.chats||[]).length>0?` · ${(areaData.chats||[]).length} past`:""}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>setShameBuster(p=>!p)} title="Shame Buster Mode" style={{
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <button onClick={()=>{setShameBuster(p=>!p);if(!shameBuster)setIbZoneIn(false)}} title="Shame Buster Mode" style={{
               padding:"4px 10px",borderRadius:14,fontSize:10,fontWeight:600,letterSpacing:".04em",
               border:`1px solid ${shameBuster?"#8b5c5c":"#ddd8cf"}`,
               background:shameBuster?"#8b5c5c14":"transparent",
               color:shameBuster?"#8b5c5c":"#b5b0a8",
               cursor:"pointer",transition:"all .2s",fontFamily:"'Newsreader',serif"
             }}>SB</button>
+            <button onClick={()=>{setIbZoneIn(p=>!p);if(!ibZoneIn)setShameBuster(false)}} title="IB Zone In" style={{
+              padding:"4px 10px",borderRadius:14,fontSize:10,fontWeight:600,letterSpacing:".04em",
+              border:`1px solid ${ibZoneIn?"#2d8a5e":"#ddd8cf"}`,
+              background:ibZoneIn?"#2d8a5e14":"transparent",
+              color:ibZoneIn?"#2d8a5e":"#b5b0a8",
+              cursor:"pointer",transition:"all .2s",fontFamily:"'Newsreader',serif"
+            }}>IB</button>
             <button onClick={closing?undefined:handleClose} style={{background:"none",border:"none",fontSize:20,color:closing?"#ccc":"#8a857e",padding:"4px 8px"}}>×</button>
           </div>
         </div>
@@ -388,6 +422,7 @@ function LifeMirror() {
   const [areas, setAreas] = useState(loadData);
   const [placemats, setPlacemats] = useState(loadPM);
   const [appreciations, setAppreciations] = useState(loadAP);
+  const [morningApps, setMorningApps] = useState(loadMA);
   const [sel, setSel] = useState("general");
   const [fCInp, setFCInp] = useState("");
   const [fInp, setFInp] = useState("");
@@ -405,10 +440,13 @@ function LifeMirror() {
   const [pmSide, setPmSide] = useState("mine");
   const [apItems, setApItems] = useState([]);
   const [apInp, setApInp] = useState("");
+  const [grItems, setGrItems] = useState([]);
+  const [grInp, setGrInp] = useState("");
 
   useEffect(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(areas)); } catch {} }, [areas]);
   useEffect(() => { try { localStorage.setItem(LS_PM, JSON.stringify(placemats)); } catch {} }, [placemats]);
   useEffect(() => { try { localStorage.setItem(LS_AP, JSON.stringify(appreciations)); } catch {} }, [appreciations]);
+  useEffect(() => { try { localStorage.setItem(LS_MA, JSON.stringify(morningApps)); } catch {} }, [morningApps]);
   useEffect(() => { try { localStorage.setItem(LS_URL, sheetUrl); } catch {} }, [sheetUrl]);
   useEffect(() => { try { localStorage.setItem(LS_API, apiKey); } catch {} }, [apiKey]);
 
@@ -513,6 +551,22 @@ function LifeMirror() {
     go("main");
   };
 
+  /* Morning Appreciation */
+  const addGrItem = () => {
+    if (!grInp.trim()) return;
+    setGrItems(p => [...p, grInp.trim()]);
+    setGrInp("");
+  };
+  const rmGrItem = (idx) => setGrItems(p => p.filter((_,i) => i !== idx));
+  const saveMorningApp = () => {
+    if (grItems.length === 0) return;
+    const gr = {date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), items:[...grItems]};
+    setMorningApps(p => [gr, ...p]);
+    postToSheet({timestamp:now(), area:"—", entryType:"Morning Appreciation", sideSource:`${grItems.length} items`, dimension:"", content:grItems.join("; "), content2:"", content3:"", emotion:"", tilt:""});
+    setGrItems([]); setGrInp("");
+    go("main");
+  };
+
   /* Mirror check — two-step flow */
   const pickCurrent = k => {
     setMFeel(k);
@@ -557,6 +611,9 @@ function LifeMirror() {
     });
     appreciations.forEach(ap => {
       csv += `"${ap.date} ${ap.time}","—","Appreciation","${ap.items.length} items","${ap.items.join('; ').replace(/"/g,'""')}"\n`;
+    });
+    morningApps.forEach(gr => {
+      csv += `"${gr.date} ${gr.time}","—","Morning Appreciation","${gr.items.length} items","${gr.items.join('; ').replace(/"/g,'""')}"\n`;
     });
     const blob = new Blob([csv], {type:"text/csv"});
     const url = URL.createObjectURL(blob);
@@ -727,9 +784,18 @@ function LifeMirror() {
         </Fade>
       )}
 
-      {/* ─── THREE TOOLS ─── */}
+      {/* ─── DAILY TOOLS ─── */}
       <Fade delay={130}>
         <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:24}}>
+
+          {/* Morning Appreciation */}
+          <button style={S.toolCard} onClick={() => { setGrItems([]); setGrInp(""); go("morning"); }}>
+            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>☀</span>
+            <div>
+              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Morning Appreciation</div>
+              <div style={{fontSize:12, color:"#8a857e"}}>Start from appreciation. Touch each area.</div>
+            </div>
+          </button>
 
           {/* Placemat */}
           <button style={S.toolCard} onClick={() => { setPmMine([]); setPmUni([]); setPmInp(""); go("placemat"); }}>
@@ -777,6 +843,7 @@ function LifeMirror() {
           {(dt.chats||[]).length > 0 && <button style={S.tBtn} onClick={() => go("chatlog")}>Past Sessions ({(dt.chats||[]).length})</button>}
           {placemats.length > 0 && <button style={S.tBtn} onClick={() => go("pmlog")}>Past Placemats ({placemats.length})</button>}
           {appreciations.length > 0 && <button style={S.tBtn} onClick={() => go("aplog")}>Past Appreciations ({appreciations.length})</button>}
+          {morningApps.length > 0 && <button style={S.tBtn} onClick={() => go("grlog")}>Past Morning Appreciations ({morningApps.length})</button>}
         </div>
       </Fade>
 
@@ -789,6 +856,58 @@ function LifeMirror() {
         </div>
       </Fade>
       {syncStatus && <div style={{textAlign:"center",padding:"6px 0",fontSize:11,color:syncStatus==="ok"?"#357a62":"#8b5c5c"}}>{syncStatus==="ok"?"✓ Synced":"✗ Sync failed"}</div>}
+    </div>
+  );
+
+  /* ═══════ RENDER: MORNING APPRECIATION ═══════ */
+  const renderMorningApp = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}>
+          <h1 style={S.h1}>Morning Appreciation</h1>
+          <p style={S.sub}>What do you appreciate right now? Touch each area of your life.</p>
+        </div>
+      </Fade>
+      <Fade delay={80}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:6, marginBottom:20}}>
+          {AREAS.map(a => (
+            <div key={a.id} style={{
+              padding:"10px 8px", borderRadius:10, border:"1px solid #e8e4dd", background:"#fff",
+              textAlign:"center", fontSize:12, color:"#5a5650", fontFamily:"'Newsreader',serif",
+              display:"flex", flexDirection:"column", alignItems:"center", gap:3
+            }}>
+              <span style={{fontSize:16, color:"#9e9890"}}>{a.icon}</span>
+              <span>{a.label}</span>
+            </div>
+          ))}
+        </div>
+      </Fade>
+      <Fade delay={140}>
+        <div style={{marginBottom:16}}>
+          <div style={S.iRow}>
+            <input style={S.ti} value={grInp} onChange={e=>setGrInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addGrItem()} placeholder="I appreciate…"/>
+            <button style={{...S.plus, background:"#c4933f"}} onClick={addGrItem}>+</button>
+          </div>
+        </div>
+        <div style={{display:"flex", flexDirection:"column", gap:5, marginBottom:20, minHeight:80}}>
+          {grItems.map((item, i) => (
+            <div key={i} style={{fontSize:13, lineHeight:1.5, padding:"8px 12px", background:"#fdf6e8", borderRadius:8, borderLeft:"3px solid #c4933f", display:"flex", alignItems:"flex-start", gap:6}}>
+              <span style={{flex:1, color:"#2a2825"}}>{item}</span>
+              <button onClick={()=>rmGrItem(i)} style={{background:"none",border:"none",fontSize:14,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          ))}
+          {grItems.length === 0 && <p style={{fontSize:13, color:"#b5b0a8", fontStyle:"italic", padding:"16px 0", textAlign:"center", fontFamily:"'Cormorant Garamond',serif"}}>Your bed. Your coffee. A person. Being alive. Touch each area — what's good right now?</p>}
+        </div>
+        {grItems.length > 0 && (
+          <div style={{textAlign:"center"}}>
+            <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:12}}>
+              Appreciation is the closest vibration to source.
+            </p>
+            <button style={{...S.pri, background:"#c4933f"}} onClick={saveMorningApp}>Save this morning's appreciation</button>
+          </div>
+        )}
+      </Fade>
     </div>
   );
 
@@ -1097,6 +1216,32 @@ function LifeMirror() {
     </div>
   );
 
+  const renderGrLog = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}><h1 style={S.h1}>Past Morning Appreciations</h1></div>
+      </Fade>
+      <Fade delay={100}>
+        <div style={{maxWidth:480, margin:"0 auto"}}>
+          {morningApps.length === 0 ? <p style={S.empty}>No morning appreciations yet.</p> : morningApps.map((gr, i) => (
+            <div key={i} style={S.logCard}>
+              <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}>
+                <span style={{fontSize:11, color:"#8a857e"}}>{gr.date} {gr.time}</span>
+                <span style={{fontSize:9.5, color:"#c4933f", textTransform:"uppercase", letterSpacing:".06em"}}>{gr.items.length} items</span>
+              </div>
+              {gr.items.map((item, j) => (
+                <div key={j} style={{fontSize:12.5, lineHeight:1.5, color:"#3a3733", marginBottom:3, paddingLeft:8}}>
+                  <span style={{color:"#c4933f", marginRight:6}}>☀</span>{item}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </Fade>
+    </div>
+  );
+
   /* ═══════ ROUTER ═══════ */
   return (
     <div style={S.app}>
@@ -1106,6 +1251,7 @@ function LifeMirror() {
       <div style={{padding:"16px 20px 72px"}}>
         {view === "mirror" && renderMirror()}
         {view === "main" && renderMain()}
+        {view === "morning" && renderMorningApp()}
         {view === "placemat" && renderPlacemat()}
         {view === "appreciate" && renderAppreciate()}
         {view === "focus" && renderFocus()}
@@ -1113,6 +1259,7 @@ function LifeMirror() {
         {view === "chatlog" && renderChatLog()}
         {view === "pmlog" && renderPmLog()}
         {view === "aplog" && renderApLog()}
+        {view === "grlog" && renderGrLog()}
       </div>
     </div>
   );
