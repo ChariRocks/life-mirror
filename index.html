@@ -440,8 +440,12 @@ function LifeMirror() {
   const [pmSide, setPmSide] = useState("mine");
   const [apItems, setApItems] = useState([]);
   const [apInp, setApInp] = useState("");
+  const [apDesires, setApDesires] = useState([]);
+  const [apDesInp, setApDesInp] = useState("");
   const [grItems, setGrItems] = useState([]);
   const [grInp, setGrInp] = useState("");
+  const [grDesires, setGrDesires] = useState([]);
+  const [grDesInp, setGrDesInp] = useState("");
 
   useEffect(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(areas)); } catch {} }, [areas]);
   useEffect(() => { try { localStorage.setItem(LS_PM, JSON.stringify(placemats)); } catch {} }, [placemats]);
@@ -535,35 +539,47 @@ function LifeMirror() {
     go("main");
   };
 
-  /* Evening Appreciations */
+  /* Evening Appreciation and Desires */
   const addApItem = () => {
     if (!apInp.trim()) return;
     setApItems(p => [...p, apInp.trim()]);
     setApInp("");
   };
   const rmApItem = (idx) => setApItems(p => p.filter((_,i) => i !== idx));
+  const addApDes = () => {
+    if (!apDesInp.trim()) return;
+    setApDesires(p => [...p, apDesInp.trim()]);
+    setApDesInp("");
+  };
+  const rmApDes = (idx) => setApDesires(p => p.filter((_,i) => i !== idx));
   const saveAppreciations = () => {
-    if (apItems.length === 0) return;
-    const ap = {date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), items:[...apItems]};
+    if (apItems.length === 0 && apDesires.length === 0) return;
+    const ap = {date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), items:[...apItems], desires:[...apDesires]};
     setAppreciations(p => [ap, ...p]);
-    postToSheet({timestamp:now(), area:"—", entryType:"Appreciation", sideSource:`${apItems.length} items`, dimension:"", content:apItems.join("; "), content2:"", content3:"", emotion:"", tilt:""});
-    setApItems([]); setApInp("");
+    postToSheet({timestamp:now(), area:"—", entryType:"Evening Appreciation", sideSource:`${apItems.length} appreciated · ${apDesires.length} desires`, dimension:"", content:apItems.join("; "), content2:apDesires.map(d=>"More of: "+d).join("; "), content3:"", emotion:"", tilt:""});
+    setApItems([]); setApInp(""); setApDesires([]); setApDesInp("");
     go("main");
   };
 
-  /* Morning Appreciation */
+  /* Morning Appreciation and Desires */
   const addGrItem = () => {
     if (!grInp.trim()) return;
     setGrItems(p => [...p, grInp.trim()]);
     setGrInp("");
   };
   const rmGrItem = (idx) => setGrItems(p => p.filter((_,i) => i !== idx));
+  const addGrDes = () => {
+    if (!grDesInp.trim()) return;
+    setGrDesires(p => [...p, grDesInp.trim()]);
+    setGrDesInp("");
+  };
+  const rmGrDes = (idx) => setGrDesires(p => p.filter((_,i) => i !== idx));
   const saveMorningApp = () => {
-    if (grItems.length === 0) return;
-    const gr = {date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), items:[...grItems]};
+    if (grItems.length === 0 && grDesires.length === 0) return;
+    const gr = {date:new Date().toLocaleDateString(), time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}), items:[...grItems], desires:[...grDesires]};
     setMorningApps(p => [gr, ...p]);
-    postToSheet({timestamp:now(), area:"—", entryType:"Morning Appreciation", sideSource:`${grItems.length} items`, dimension:"", content:grItems.join("; "), content2:"", content3:"", emotion:"", tilt:""});
-    setGrItems([]); setGrInp("");
+    postToSheet({timestamp:now(), area:"—", entryType:"Morning Appreciation", sideSource:`${grItems.length} appreciated · ${grDesires.length} desires`, dimension:"", content:grItems.join("; "), content2:grDesires.map(d=>"More of: "+d).join("; "), content3:"", emotion:"", tilt:""});
+    setGrItems([]); setGrInp(""); setGrDesires([]); setGrDesInp("");
     go("main");
   };
 
@@ -610,10 +626,12 @@ function LifeMirror() {
       csv += `"${pm.date} ${pm.time}","—","Placemat","Mine: ${pm.mine.length} / Universe: ${pm.universe.length}","Mine: ${pm.mine.join('; ')} | Universe: ${pm.universe.join('; ')}"\n`;
     });
     appreciations.forEach(ap => {
-      csv += `"${ap.date} ${ap.time}","—","Appreciation","${ap.items.length} items","${ap.items.join('; ').replace(/"/g,'""')}"\n`;
+      const des = (ap.desires||[]).map(d=>"More of: "+d).join('; ');
+      csv += `"${ap.date} ${ap.time}","—","Evening Appreciation","${(ap.items||[]).length} appreciated · ${(ap.desires||[]).length} desires","${(ap.items||[]).join('; ').replace(/"/g,'""')}","${des.replace(/"/g,'""')}"\n`;
     });
     morningApps.forEach(gr => {
-      csv += `"${gr.date} ${gr.time}","—","Morning Appreciation","${gr.items.length} items","${gr.items.join('; ').replace(/"/g,'""')}"\n`;
+      const des = (gr.desires||[]).map(d=>"More of: "+d).join('; ');
+      csv += `"${gr.date} ${gr.time}","—","Morning Appreciation","${(gr.items||[]).length} appreciated · ${(gr.desires||[]).length} desires","${(gr.items||[]).join('; ').replace(/"/g,'""')}","${des.replace(/"/g,'""')}"\n`;
     });
     const blob = new Blob([csv], {type:"text/csv"});
     const url = URL.createObjectURL(blob);
@@ -788,12 +806,12 @@ function LifeMirror() {
       <Fade delay={130}>
         <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:24}}>
 
-          {/* Morning Appreciation */}
-          <button style={S.toolCard} onClick={() => { setGrItems([]); setGrInp(""); go("morning"); }}>
+          {/* Morning Appreciation & Desires */}
+          <button style={S.toolCard} onClick={() => { setGrItems([]); setGrInp(""); setGrDesires([]); setGrDesInp(""); go("morning"); }}>
             <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>☀</span>
             <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Morning Appreciation</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>Start from appreciation. Touch each area.</div>
+              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Morning Appreciation & Desires</div>
+              <div style={{fontSize:12, color:"#8a857e"}}>Appreciate what is. Desire what's coming. Touch each area.</div>
             </div>
           </button>
 
@@ -824,12 +842,12 @@ function LifeMirror() {
             </div>
           </button>
 
-          {/* Evening Appreciations */}
-          <button style={S.toolCard} onClick={() => { setApItems([]); setApInp(""); go("appreciate"); }}>
+          {/* Evening Appreciation & Desires */}
+          <button style={S.toolCard} onClick={() => { setApItems([]); setApInp(""); setApDesires([]); setApDesInp(""); go("appreciate"); }}>
             <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>✦</span>
             <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Evening Appreciations</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>What showed up today? What resolved without you pushing?</div>
+              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Evening Appreciation & Desires</div>
+              <div style={{fontSize:12, color:"#8a857e"}}>What showed up today? What would you love more of?</div>
             </div>
           </button>
 
@@ -842,8 +860,8 @@ function LifeMirror() {
           {dt.focusWheels.length > 0 && <button style={S.tBtn} onClick={() => go("wheellog")}>Past Wheels ({dt.focusWheels.length})</button>}
           {(dt.chats||[]).length > 0 && <button style={S.tBtn} onClick={() => go("chatlog")}>Past Sessions ({(dt.chats||[]).length})</button>}
           {placemats.length > 0 && <button style={S.tBtn} onClick={() => go("pmlog")}>Past Placemats ({placemats.length})</button>}
-          {appreciations.length > 0 && <button style={S.tBtn} onClick={() => go("aplog")}>Past Appreciations ({appreciations.length})</button>}
-          {morningApps.length > 0 && <button style={S.tBtn} onClick={() => go("grlog")}>Past Morning Appreciations ({morningApps.length})</button>}
+          {appreciations.length > 0 && <button style={S.tBtn} onClick={() => go("aplog")}>Past Evenings ({appreciations.length})</button>}
+          {morningApps.length > 0 && <button style={S.tBtn} onClick={() => go("grlog")}>Past Mornings ({morningApps.length})</button>}
         </div>
       </Fade>
 
@@ -859,13 +877,13 @@ function LifeMirror() {
     </div>
   );
 
-  /* ═══════ RENDER: MORNING APPRECIATION ═══════ */
+  /* ═══════ RENDER: MORNING APPRECIATION AND DESIRES ═══════ */
   const renderMorningApp = () => (
     <div style={S.page}>
       <Fade>
         <button style={S.back} onClick={() => go("main")}>← Back</button>
         <div style={S.ctr}>
-          <h1 style={S.h1}>Morning Appreciation</h1>
+          <h1 style={S.h1}>Morning Appreciation & Desires</h1>
           <p style={S.sub}>What do you appreciate right now? Touch each area of your life.</p>
         </div>
       </Fade>
@@ -883,31 +901,59 @@ function LifeMirror() {
           ))}
         </div>
       </Fade>
-      <Fade delay={140}>
-        <div style={{marginBottom:16}}>
+
+      {/* Appreciation section */}
+      <Fade delay={120}>
+        <div style={{marginBottom:6}}>
+          <div style={{fontSize:11, fontWeight:600, color:"#c4933f", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8}}>Appreciation</div>
           <div style={S.iRow}>
             <input style={S.ti} value={grInp} onChange={e=>setGrInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addGrItem()} placeholder="I appreciate…"/>
             <button style={{...S.plus, background:"#c4933f"}} onClick={addGrItem}>+</button>
           </div>
         </div>
-        <div style={{display:"flex", flexDirection:"column", gap:5, marginBottom:20, minHeight:80}}>
+        <div style={{display:"flex", flexDirection:"column", gap:4, marginBottom:20}}>
           {grItems.map((item, i) => (
             <div key={i} style={{fontSize:13, lineHeight:1.5, padding:"8px 12px", background:"#fdf6e8", borderRadius:8, borderLeft:"3px solid #c4933f", display:"flex", alignItems:"flex-start", gap:6}}>
               <span style={{flex:1, color:"#2a2825"}}>{item}</span>
               <button onClick={()=>rmGrItem(i)} style={{background:"none",border:"none",fontSize:14,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
             </div>
           ))}
-          {grItems.length === 0 && <p style={{fontSize:13, color:"#b5b0a8", fontStyle:"italic", padding:"16px 0", textAlign:"center", fontFamily:"'Cormorant Garamond',serif"}}>Your bed. Your coffee. A person. Being alive. Touch each area — what's good right now?</p>}
+          {grItems.length === 0 && <p style={{fontSize:12.5, color:"#b5b0a8", fontStyle:"italic", padding:"10px 0", textAlign:"center", fontFamily:"'Cormorant Garamond',serif"}}>Your bed. Your coffee. A person. Being alive.</p>}
         </div>
-        {grItems.length > 0 && (
+      </Fade>
+
+      {/* Desires section */}
+      <Fade delay={160}>
+        <div style={{borderTop:"1px solid #e8e4dd", paddingTop:16, marginBottom:6}}>
+          <div style={{fontSize:11, fontWeight:600, color:"#357a62", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8}}>Desires</div>
+          <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:10}}>
+            {grDesires.length === 0 ? "What I'd love more of is…" : "Thank you. What else would you love more of?"}
+          </p>
+          <div style={S.iRow}>
+            <input style={S.ti} value={grDesInp} onChange={e=>setGrDesInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addGrDes()} placeholder="What I'd love more of is…"/>
+            <button style={{...S.plus, background:"#357a62"}} onClick={addGrDes}>+</button>
+          </div>
+        </div>
+        <div style={{display:"flex", flexDirection:"column", gap:4, marginBottom:20}}>
+          {grDesires.map((item, i) => (
+            <div key={i} style={{fontSize:13, lineHeight:1.5, padding:"8px 12px", background:"#edf7f0", borderRadius:8, borderLeft:"3px solid #357a62", display:"flex", alignItems:"flex-start", gap:6}}>
+              <span style={{flex:1, color:"#2a2825"}}>{item}</span>
+              <button onClick={()=>rmGrDes(i)} style={{background:"none",border:"none",fontSize:14,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          ))}
+        </div>
+      </Fade>
+
+      {(grItems.length > 0 || grDesires.length > 0) && (
+        <Fade delay={180}>
           <div style={{textAlign:"center"}}>
             <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:12}}>
               Appreciation is the closest vibration to source.
             </p>
-            <button style={{...S.pri, background:"#c4933f"}} onClick={saveMorningApp}>Save this morning's appreciation</button>
+            <button style={{...S.pri, background:"#c4933f"}} onClick={saveMorningApp}>Save this morning</button>
           </div>
-        )}
-      </Fade>
+        </Fade>
+      )}
     </div>
   );
 
@@ -1152,41 +1198,69 @@ function LifeMirror() {
     </div>
   );
 
-  /* ═══════ RENDER: EVENING APPRECIATIONS ═══════ */
+  /* ═══════ RENDER: EVENING APPRECIATION AND DESIRES ═══════ */
   const renderAppreciate = () => (
     <div style={S.page}>
       <Fade>
         <button style={S.back} onClick={() => go("main")}>← Back</button>
         <div style={S.ctr}>
-          <h1 style={S.h1}>Evening Appreciations</h1>
-          <p style={S.sub}>What showed up today? What resolved without you pushing? What felt easy?</p>
+          <h1 style={S.h1}>Evening Appreciation & Desires</h1>
+          <p style={S.sub}>What showed up today? What would you love more of?</p>
         </div>
       </Fade>
+
+      {/* Appreciation section */}
       <Fade delay={100}>
-        <div style={{marginBottom:16}}>
+        <div style={{marginBottom:6}}>
+          <div style={{fontSize:11, fontWeight:600, color:"#6b5b95", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8}}>Appreciation</div>
           <div style={S.iRow}>
             <input style={S.ti} value={apInp} onChange={e=>setApInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addApItem()} placeholder="Something that showed up today…"/>
             <button style={{...S.plus, background:"#6b5b95"}} onClick={addApItem}>+</button>
           </div>
         </div>
-        <div style={{display:"flex", flexDirection:"column", gap:5, marginBottom:20, minHeight:80}}>
+        <div style={{display:"flex", flexDirection:"column", gap:4, marginBottom:20}}>
           {apItems.map((item, i) => (
             <div key={i} style={{fontSize:13, lineHeight:1.5, padding:"8px 12px", background:"#f3f0f7", borderRadius:8, borderLeft:"3px solid #6b5b95", display:"flex", alignItems:"flex-start", gap:6}}>
               <span style={{flex:1, color:"#2a2825"}}>{item}</span>
               <button onClick={()=>rmApItem(i)} style={{background:"none",border:"none",fontSize:14,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
             </div>
           ))}
-          {apItems.length === 0 && <p style={{fontSize:13, color:"#b5b0a8", fontStyle:"italic", padding:"16px 0", textAlign:"center", fontFamily:"'Cormorant Garamond',serif"}}>A stranger's kindness. A call at the right time. A moment of ease. Things that fell into place.</p>}
+          {apItems.length === 0 && <p style={{fontSize:12.5, color:"#b5b0a8", fontStyle:"italic", padding:"10px 0", textAlign:"center", fontFamily:"'Cormorant Garamond',serif"}}>A stranger's kindness. A call at the right time. A moment of ease.</p>}
         </div>
-        {apItems.length > 0 && (
+      </Fade>
+
+      {/* Desires section */}
+      <Fade delay={140}>
+        <div style={{borderTop:"1px solid #e8e4dd", paddingTop:16, marginBottom:6}}>
+          <div style={{fontSize:11, fontWeight:600, color:"#357a62", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8}}>Desires</div>
+          <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:10}}>
+            {apDesires.length === 0 ? "What I'd love more of is…" : "Thank you. What else would you love more of?"}
+          </p>
+          <div style={S.iRow}>
+            <input style={S.ti} value={apDesInp} onChange={e=>setApDesInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addApDes()} placeholder="What I'd love more of is…"/>
+            <button style={{...S.plus, background:"#357a62"}} onClick={addApDes}>+</button>
+          </div>
+        </div>
+        <div style={{display:"flex", flexDirection:"column", gap:4, marginBottom:20}}>
+          {apDesires.map((item, i) => (
+            <div key={i} style={{fontSize:13, lineHeight:1.5, padding:"8px 12px", background:"#edf7f0", borderRadius:8, borderLeft:"3px solid #357a62", display:"flex", alignItems:"flex-start", gap:6}}>
+              <span style={{flex:1, color:"#2a2825"}}>{item}</span>
+              <button onClick={()=>rmApDes(i)} style={{background:"none",border:"none",fontSize:14,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+            </div>
+          ))}
+        </div>
+      </Fade>
+
+      {(apItems.length > 0 || apDesires.length > 0) && (
+        <Fade delay={160}>
           <div style={{textAlign:"center"}}>
             <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:12}}>
               Things are always working out for you.
             </p>
-            <button style={{...S.pri, background:"#6b5b95"}} onClick={saveAppreciations}>Save tonight's appreciations</button>
+            <button style={{...S.pri, background:"#6b5b95"}} onClick={saveAppreciations}>Save this evening</button>
           </div>
-        )}
-      </Fade>
+        </Fade>
+      )}
     </div>
   );
 
@@ -1194,21 +1268,30 @@ function LifeMirror() {
     <div style={S.page}>
       <Fade>
         <button style={S.back} onClick={() => go("main")}>← Back</button>
-        <div style={S.ctr}><h1 style={S.h1}>Past Appreciations</h1></div>
+        <div style={S.ctr}><h1 style={S.h1}>Past Evening Entries</h1></div>
       </Fade>
       <Fade delay={100}>
         <div style={{maxWidth:480, margin:"0 auto"}}>
-          {appreciations.length === 0 ? <p style={S.empty}>No appreciations yet.</p> : appreciations.map((ap, i) => (
+          {appreciations.length === 0 ? <p style={S.empty}>No entries yet.</p> : appreciations.map((ap, i) => (
             <div key={i} style={S.logCard}>
               <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}>
                 <span style={{fontSize:11, color:"#8a857e"}}>{ap.date} {ap.time}</span>
-                <span style={{fontSize:9.5, color:"#6b5b95", textTransform:"uppercase", letterSpacing:".06em"}}>{ap.items.length} noticed</span>
+                <span style={{fontSize:9.5, color:"#6b5b95", textTransform:"uppercase", letterSpacing:".06em"}}>{(ap.items||[]).length} appreciated{(ap.desires||[]).length>0?` · ${(ap.desires||[]).length} desires`:""}</span>
               </div>
-              {ap.items.map((item, j) => (
+              {(ap.items||[]).map((item, j) => (
                 <div key={j} style={{fontSize:12.5, lineHeight:1.5, color:"#3a3733", marginBottom:3, paddingLeft:8}}>
                   <span style={{color:"#6b5b95", marginRight:6}}>✦</span>{item}
                 </div>
               ))}
+              {(ap.desires||[]).length > 0 && (
+                <div style={{marginTop:8, paddingTop:8, borderTop:"1px solid #eee9e2"}}>
+                  {(ap.desires||[]).map((item, j) => (
+                    <div key={j} style={{fontSize:12.5, lineHeight:1.5, color:"#3a3733", marginBottom:3, paddingLeft:8}}>
+                      <span style={{color:"#357a62", marginRight:6}}>→</span>More of: {item}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1220,21 +1303,30 @@ function LifeMirror() {
     <div style={S.page}>
       <Fade>
         <button style={S.back} onClick={() => go("main")}>← Back</button>
-        <div style={S.ctr}><h1 style={S.h1}>Past Morning Appreciations</h1></div>
+        <div style={S.ctr}><h1 style={S.h1}>Past Morning Entries</h1></div>
       </Fade>
       <Fade delay={100}>
         <div style={{maxWidth:480, margin:"0 auto"}}>
-          {morningApps.length === 0 ? <p style={S.empty}>No morning appreciations yet.</p> : morningApps.map((gr, i) => (
+          {morningApps.length === 0 ? <p style={S.empty}>No entries yet.</p> : morningApps.map((gr, i) => (
             <div key={i} style={S.logCard}>
               <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}>
                 <span style={{fontSize:11, color:"#8a857e"}}>{gr.date} {gr.time}</span>
-                <span style={{fontSize:9.5, color:"#c4933f", textTransform:"uppercase", letterSpacing:".06em"}}>{gr.items.length} items</span>
+                <span style={{fontSize:9.5, color:"#c4933f", textTransform:"uppercase", letterSpacing:".06em"}}>{(gr.items||[]).length} appreciated{(gr.desires||[]).length>0?` · ${(gr.desires||[]).length} desires`:""}</span>
               </div>
-              {gr.items.map((item, j) => (
+              {(gr.items||[]).map((item, j) => (
                 <div key={j} style={{fontSize:12.5, lineHeight:1.5, color:"#3a3733", marginBottom:3, paddingLeft:8}}>
                   <span style={{color:"#c4933f", marginRight:6}}>☀</span>{item}
                 </div>
               ))}
+              {(gr.desires||[]).length > 0 && (
+                <div style={{marginTop:8, paddingTop:8, borderTop:"1px solid #eee9e2"}}>
+                  {(gr.desires||[]).map((item, j) => (
+                    <div key={j} style={{fontSize:12.5, lineHeight:1.5, color:"#3a3733", marginBottom:3, paddingLeft:8}}>
+                      <span style={{color:"#357a62", marginRight:6}}>→</span>More of: {item}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
