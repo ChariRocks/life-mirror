@@ -63,6 +63,10 @@ const egsL = k => EGS.find(e=>e.key===k)?.label || "";
 const egsN = k => EGS.find(e=>e.key===k)?.n || 0;
 const egsShort = k => {const l = egsL(k); return l.split(" · ")[0];};
 
+const fmt = (n) => "$" + n.toLocaleString("en-US");
+const fmtK = (n) => n >= 1000000 ? "$" + (n/1000000).toFixed(1) + "M" : n >= 1000 ? "$" + (n/1000).toFixed(n%1000===0?0:1) + "k" : "$" + n;
+const dateStr = (d) => new Date(d).toLocaleDateString("en-US", {month:"short", day:"numeric"});
+
 const REFLECTIONS_SMALL = [
   "That's close. You can feel that from here.",
   "Not a big leap. Just a gentle turn.",
@@ -205,6 +209,10 @@ const LS_MA = "life_mirror_morning_appreciation";
 const LS_URL = "life_mirror_sheet_url";
 const LS_API = "life_mirror_api_key";
 
+const LS_PG = "life_mirror_prosperity_game";
+
+const loadPG = () => { try { return JSON.parse(localStorage.getItem(LS_PG)) || { entries: [] }; } catch { return { entries: [] }; } };
+
 const defArea = () => ({emotion:"contentment", focusWheels:[], currentWheel:{center:"",statements:[]}, chats:[]});
 const initAreas = () => ALL_AREAS.reduce((a,x) => {a[x.id]=defArea(); return a}, {});
 
@@ -250,6 +258,133 @@ const ReminderStrip = () => {
           </span>
         ))}
       </div>
+    </div>
+  );
+};
+
+/* ═══ PROSPERITY TREND CHART ═══ */
+const ProsperityTrendChart = ({entries}) => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    if (!canvasRef.current || entries.length < 2) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const pad = {top:28, right:12, bottom:32, left:50};
+    const cw = w - pad.left - pad.right;
+    const ch = h - pad.top - pad.bottom;
+
+    const runningTotals = entries.map(e => e.runningTotal);
+    const maxRunning = Math.max(...runningTotals);
+
+    const xStep = entries.length > 1 ? cw / (entries.length - 1) : cw;
+
+    /* Running total area fill */
+    ctx.beginPath();
+    entries.forEach((e, i) => {
+      const x = pad.left + i * xStep;
+      const y = pad.top + ch - (e.runningTotal / maxRunning) * ch;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad.left + (entries.length - 1) * xStep, pad.top + ch);
+    ctx.lineTo(pad.left, pad.top + ch);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(53,122,98,.08)";
+    ctx.fill();
+
+    /* Running total line */
+    ctx.beginPath();
+    entries.forEach((e, i) => {
+      const x = pad.left + i * xStep;
+      const y = pad.top + ch - (e.runningTotal / maxRunning) * ch;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = "rgba(53,122,98,.3)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    /* Daily amount bars */
+    const barW = Math.max(4, Math.min(18, cw / entries.length - 2));
+    entries.forEach((e, i) => {
+      const x = pad.left + i * xStep - barW / 2;
+      const barH = Math.max(2, (e.amount / maxRunning) * ch);
+      const y = pad.top + ch - barH;
+      ctx.fillStyle = e.mode === "double" ? "#c4933f" : "#357a62";
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barW, barH, 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    /* Dots on running total */
+    entries.forEach((e, i) => {
+      const x = pad.left + i * xStep;
+      const y = pad.top + ch - (e.runningTotal / maxRunning) * ch;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "#357a62";
+      ctx.fill();
+    });
+
+    /* X-axis labels */
+    ctx.fillStyle = "#8a857e";
+    ctx.font = "10px 'Newsreader', serif";
+    ctx.textAlign = "center";
+    const labelInterval = Math.max(1, Math.floor(entries.length / 8));
+    entries.forEach((e, i) => {
+      if (i % labelInterval === 0 || i === entries.length - 1) {
+        const x = pad.left + i * xStep;
+        ctx.fillText("D" + e.dayNumber, x, pad.top + ch + 16);
+      }
+    });
+
+    /* Y-axis labels */
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#b5b0a8";
+    ctx.font = "9px 'Newsreader', serif";
+    [0, 0.5, 1].forEach(pct => {
+      const val = maxRunning * pct;
+      const y = pad.top + ch - pct * ch;
+      ctx.fillText(fmtK(Math.round(val)), pad.left - 6, y + 3);
+      if (pct > 0 && pct < 1) {
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(pad.left + cw, y);
+        ctx.strokeStyle = "#e8e4dd";
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    });
+
+    /* Legend */
+    ctx.textAlign = "left";
+    ctx.font = "9px 'Newsreader', serif";
+    ctx.fillStyle = "#357a62";
+    ctx.fillRect(pad.left, 6, 8, 8);
+    ctx.fillText("Daily", pad.left + 12, 14);
+    ctx.fillStyle = "#c4933f";
+    ctx.fillRect(pad.left + 48, 6, 8, 8);
+    ctx.fillText("Doubled", pad.left + 60, 14);
+    ctx.fillStyle = "rgba(53,122,98,.4)";
+    ctx.fillRect(pad.left + 114, 6, 8, 8);
+    ctx.fillText("Running total", pad.left + 126, 14);
+
+  }, [entries]);
+
+  if (entries.length < 2) return null;
+  return (
+    <div style={{marginBottom:24}}>
+      <canvas ref={canvasRef} style={{width:"100%", height:180, display:"block"}}/>
     </div>
   );
 };
@@ -455,11 +590,18 @@ function LifeMirror() {
   const [grInp, setGrInp] = useState("");
   const [grDesires, setGrDesires] = useState([]);
   const [grDesInp, setGrDesInp] = useState("");
+  const [pgData, setPgData] = useState(loadPG);
+  const [pgView, setPgView] = useState("today");
+  const [pgMode, setPgMode] = useState("increment");
+  const [pgItems, setPgItems] = useState([{description:"",amount:""},{description:"",amount:""},{description:"",amount:""}]);
+  const [pgJustSaved, setPgJustSaved] = useState(false);
 
   useEffect(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(areas)); } catch {} }, [areas]);
   useEffect(() => { try { localStorage.setItem(LS_PM, JSON.stringify(placemats)); } catch {} }, [placemats]);
   useEffect(() => { try { localStorage.setItem(LS_AP, JSON.stringify(appreciations)); } catch {} }, [appreciations]);
   useEffect(() => { try { localStorage.setItem(LS_MA, JSON.stringify(morningApps)); } catch {} }, [morningApps]);
+
+  useEffect(() => { try { localStorage.setItem(LS_PG, JSON.stringify(pgData)); } catch {} }, [pgData]);
   useEffect(() => { try { localStorage.setItem(LS_URL, sheetUrl); } catch {} }, [sheetUrl]);
   useEffect(() => { try { localStorage.setItem(LS_API, apiKey); } catch {} }, [apiKey]);
 
@@ -813,51 +955,48 @@ function LifeMirror() {
 
       {/* ─── DAILY TOOLS ─── */}
       <Fade delay={130}>
-        <div style={{display:"flex", flexDirection:"column", gap:10, marginBottom:24}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24}}>
 
           {/* Morning Appreciation & Desires */}
           <button style={S.toolCard} onClick={() => { setGrItems([]); setGrInp(""); setGrDesires([]); setGrDesInp(""); go("morning"); }}>
-            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>☀</span>
-            <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Morning Appreciation & Desires</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>Appreciate what is. Desire what's coming. Touch each area.</div>
-            </div>
+            <span style={S.tcIcon}>☀</span>
+            <div style={S.tcTitle}>Morning Appreciation</div>
+            <div style={S.tcSub}>Appreciate what is. Desire what's coming.</div>
           </button>
 
           {/* Placemat */}
           <button style={S.toolCard} onClick={() => { setPmMine([]); setPmUni([]); setPmInp(""); go("placemat"); }}>
-            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>☐</span>
-            <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Today's Placemat</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>Your side and the universe's side. Plan your day with less resistance.</div>
-            </div>
+            <span style={S.tcIcon}>☐</span>
+            <div style={S.tcTitle}>Today's Placemat</div>
+            <div style={S.tcSub}>Your side and the universe's side.</div>
           </button>
 
           {/* Focus Wheel */}
           <button style={S.toolCard} onClick={() => go("focus")}>
-            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>◎</span>
-            <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Focus Wheel</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>Place your desire at center. Build momentum with comfortable thoughts.{dt.currentWheel.center ? ` Active: "${dt.currentWheel.center}"` : ""}</div>
-            </div>
+            <span style={S.tcIcon}>◎</span>
+            <div style={S.tcTitle}>Focus Wheel</div>
+            <div style={S.tcSub}>Place your desire at center.{dt.currentWheel.center ? ` Active wheel.` : ""}</div>
           </button>
 
           {/* Chat */}
           <button style={S.toolCard} onClick={() => setShowChat(true)}>
-            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>◌</span>
-            <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Work this with me</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>Talk it through with a coach who knows the teachings.{(dt.chats||[]).length>0?` ${(dt.chats||[]).length} past sessions.`:""}</div>
-            </div>
+            <span style={S.tcIcon}>◌</span>
+            <div style={S.tcTitle}>Work this with me</div>
+            <div style={S.tcSub}>Talk it through with a coach.{(dt.chats||[]).length>0?` ${(dt.chats||[]).length} past.`:""}</div>
           </button>
 
           {/* Evening Appreciation & Desires */}
           <button style={S.toolCard} onClick={() => { setApItems([]); setApInp(""); setApDesires([]); setApDesInp(""); go("appreciate"); }}>
-            <span style={{fontSize:22, color:"#9e9890", flexShrink:0, width:28, textAlign:"center"}}>✦</span>
-            <div>
-              <div style={{fontSize:14, fontWeight:500, color:"#1e1c1a"}}>Evening Appreciation & Desires</div>
-              <div style={{fontSize:12, color:"#8a857e"}}>What showed up today? What would you love more of?</div>
-            </div>
+            <span style={S.tcIcon}>✦</span>
+            <div style={S.tcTitle}>Evening Appreciation</div>
+            <div style={S.tcSub}>What showed up today?</div>
+          </button>
+
+          {/* Prosperity Game */}
+          <button style={S.toolCard} onClick={() => { setPgView("today"); setPgJustSaved(false); go("prosperity"); }}>
+            <span style={S.tcIcon}>◈</span>
+            <div style={S.tcTitle}>Prosperity Game</div>
+            <div style={S.tcSub}>Build your abundance vibration.{pgData.entries.length > 0 ? ` Day ${pgData.entries[pgData.entries.length-1].dayNumber + 1}.` : ""}</div>
           </button>
 
         </div>
@@ -1343,6 +1482,313 @@ function LifeMirror() {
     </div>
   );
 
+  /* ═══════ RENDER: PROSPERITY GAME ═══════ */
+  const renderProsperity = () => {
+    const entries = pgData.entries || [];
+    const lastEntry = entries.length > 0 ? entries[entries.length - 1] : null;
+    const currentDayNumber = lastEntry ? lastEntry.dayNumber + 1 : 1;
+    const prevAmount = lastEntry ? lastEntry.amount : 0;
+    const prevMode = lastEntry ? lastEntry.mode : "increment";
+
+    useEffect(() => {
+      if (!pgJustSaved) {
+        setPgMode(prevMode === "double" && currentDayNumber > 1 ? "double" : "increment");
+      }
+    }, [currentDayNumber, prevMode, pgJustSaved]);
+
+    const todayAmount = currentDayNumber === 1
+      ? 1000
+      : pgMode === "double"
+        ? prevAmount * 2
+        : prevAmount + 1000;
+
+    const runningTotal = entries.reduce((sum, e) => sum + e.amount, 0);
+
+    const updateItem = (idx, field, val) => {
+      setPgItems(prev => prev.map((item, i) => i === idx ? {...item, [field]: val} : item));
+    };
+
+    const parseAmt = (s) => {
+      const n = parseFloat(s.replace(/[^0-9.]/g, ""));
+      return isNaN(n) ? 0 : n;
+    };
+
+    const itemAmounts = pgItems.map(it => parseAmt(it.amount));
+    const allocated = itemAmounts.reduce((a, b) => a + b, 0);
+    const remaining = todayAmount - allocated;
+
+    const usedItems = pgItems.filter((it, i) => it.description.trim().length > 0 || itemAmounts[i] > 0);
+    const allUsedValid = usedItems.length > 0 && usedItems.every((it, i) => {
+      const idx = pgItems.indexOf(it);
+      return it.description.trim().length > 0 && itemAmounts[idx] > 0;
+    });
+    const canSave = Math.abs(remaining) < 0.01 && allUsedValid;
+
+    const hasPartialRow = pgItems.some((it, i) => {
+      const hasDesc = it.description.trim().length > 0;
+      const hasAmt = itemAmounts[i] > 0;
+      return (hasDesc && !hasAmt) || (!hasDesc && hasAmt);
+    });
+
+    const handleSave = () => {
+      if (!canSave) return;
+      const savedItems = pgItems
+        .map((it, i) => ({description: it.description.trim(), amount: itemAmounts[i]}))
+        .filter(it => it.description.length > 0 && it.amount > 0);
+      const entry = {
+        date: new Date().toISOString(),
+        dayNumber: currentDayNumber,
+        amount: todayAmount,
+        mode: pgMode,
+        items: savedItems,
+        runningTotal: runningTotal + todayAmount
+      };
+      setPgData(prev => ({...prev, entries: [...prev.entries, entry]}));
+      setPgJustSaved(true);
+      setPgItems([{description:"",amount:""},{description:"",amount:""},{description:"",amount:""}]);
+    };
+
+    const continueNextDay = () => {
+      setPgJustSaved(false);
+    };
+
+    const resetGame = () => {
+      if (window.confirm("Start fresh? This clears all your prosperity game history.")) {
+        setPgData({entries: []});
+        setPgJustSaved(false);
+        setPgMode("increment");
+        setPgItems([{description:"",amount:""},{description:"",amount:""},{description:"",amount:""}]);
+      }
+    };
+
+    const renderToday = () => {
+      const showDone = pgJustSaved;
+      const displayEntry = showDone ? entries[entries.length - 1] : null;
+
+      return (
+        <div style={S.page}>
+          <Fade>
+            <button style={S.back} onClick={() => go("main")}>← Back to Life Mirror</button>
+            <div style={S.ctr}>
+              <div style={{fontSize:13, color:"#8a857e", marginBottom:6, letterSpacing:".04em", textTransform:"uppercase"}}>The Prosperity Game</div>
+              <h1 style={S.h1}>Day {showDone ? displayEntry.dayNumber : currentDayNumber}</h1>
+            </div>
+          </Fade>
+
+          <Fade delay={60}>
+            <div style={{textAlign:"center", marginBottom:24}}>
+              <div style={{fontSize:12, color:"#8a857e", marginBottom:4}}>Total received so far</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:30, fontWeight:500, color:"#357a62"}}>
+                {fmt(showDone ? displayEntry.runningTotal : runningTotal)}
+              </div>
+            </div>
+          </Fade>
+
+          {entries.length >= 2 && !showDone && (
+            <Fade delay={80}>
+              <ProsperityTrendChart entries={entries}/>
+            </Fade>
+          )}
+
+          {showDone ? (
+            <Fade delay={120}>
+              <div style={{textAlign:"center", padding:"16px 0"}}>
+                <div style={{fontSize:44, marginBottom:14, opacity:.6}}>✦</div>
+                <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:19, color:"#1e1c1a", marginBottom:8}}>
+                  Today's {fmt(displayEntry.amount)} has been received and spent.
+                </p>
+                <p style={{fontSize:14, color:"#5a5650", fontStyle:"italic", lineHeight:1.6, maxWidth:340, margin:"0 auto 22px"}}>
+                  Feel the ease of it. You spent freely. More is coming.
+                </p>
+
+                <div style={{maxWidth:440, margin:"0 auto 20px", textAlign:"left"}}>
+                  {displayEntry.items.map((it, i) => (
+                    <div key={i} style={{padding:"8px 14px", background:"#f2f7f4", borderRadius:8, borderLeft:"3px solid #357a62", marginBottom:5, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                      <span style={{fontSize:13, color:"#2a2825", flex:1, marginRight:12}}>{it.description}</span>
+                      <span style={{fontSize:13, color:"#357a62", fontWeight:500, flexShrink:0}}>{fmt(it.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {entries.length >= 2 && <ProsperityTrendChart entries={entries}/>}
+
+                <p style={{fontSize:13, color:"#8a857e", marginBottom:18}}>In production this locks until tomorrow. For this demo:</p>
+                <button style={S.pri} onClick={continueNextDay}>Play next day →</button>
+              </div>
+            </Fade>
+          ) : (
+            <>
+              <Fade delay={100}>
+                <div style={{background:"#fff", border:"1px solid #e8e4dd", borderRadius:14, padding:"20px 20px", marginBottom:20, boxShadow:"0 1px 8px rgba(0,0,0,.04)"}}>
+                  <div style={{textAlign:"center", marginBottom:14}}>
+                    <div style={{fontSize:12, color:"#8a857e", marginBottom:6}}>The universe is sending you</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif", fontSize:40, fontWeight:600, color:"#1e1c1a", letterSpacing:"-.02em"}}>
+                      {fmt(todayAmount)}
+                    </div>
+                  </div>
+
+                  <div style={{display:"flex", gap:8, justifyContent:"center"}}>
+                    <button onClick={() => setPgMode("increment")} style={{
+                      padding:"7px 18px", borderRadius:22, fontSize:12.5,
+                      border:`1px solid ${pgMode==="increment"?"#357a62":"#ddd8cf"}`,
+                      background: pgMode==="increment"?"#357a6214":"transparent",
+                      color: pgMode==="increment"?"#357a62":"#807a72",
+                      transition:"all .2s"
+                    }}>+$1,000</button>
+                    <button onClick={() => { if(currentDayNumber > 1) setPgMode("double"); }} style={{
+                      padding:"7px 18px", borderRadius:22, fontSize:12.5,
+                      border:`1px solid ${currentDayNumber === 1 ? "#e8e4dd" : pgMode==="double"?"#c4933f":"#ddd8cf"}`,
+                      background: currentDayNumber === 1 ? "transparent" : pgMode==="double"?"#c4933f14":"transparent",
+                      color: currentDayNumber === 1 ? "#c5c0b8" : pgMode==="double"?"#c4933f":"#807a72",
+                      transition:"all .2s",
+                      cursor: currentDayNumber === 1 ? "default" : "pointer"
+                    }}>Double it{currentDayNumber === 1 ? " (from Day 2)" : ""}</button>
+                  </div>
+                </div>
+              </Fade>
+
+              <Fade delay={160}>
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:15, color:"#5a5650", marginBottom:12, fontFamily:"'Cormorant Garamond',serif", fontStyle:"italic"}}>
+                    What would you enjoy spending this on?
+                  </div>
+                  {pgItems.map((item, i) => {
+                    const hasDesc = item.description.trim().length > 0;
+                    const hasAmt = itemAmounts[i] > 0;
+                    const isPartial = (hasDesc && !hasAmt) || (!hasDesc && hasAmt);
+                    return (
+                      <div key={i} style={{
+                        background:"#fff",
+                        border: isPartial ? "1px solid #c4933f" : "1px solid #e8e4dd",
+                        borderRadius:10, padding:"10px 14px", marginBottom:6,
+                        display:"flex", alignItems:"center", gap:10
+                      }}>
+                        <span style={{fontSize:10, color:"#8a857e", textTransform:"uppercase", letterSpacing:".05em", flexShrink:0, width:14}}>{i+1}.</span>
+                        <input
+                          style={{...S.ti, border:"none", padding:"4px 0", flex:1, background:"transparent"}}
+                          value={item.description}
+                          onChange={e => updateItem(i, "description", e.target.value)}
+                          placeholder={i === 0 ? "Something that lights you up…" : "Optional — leave blank to skip"}
+                        />
+                        <div style={{display:"flex", alignItems:"center", gap:2, flexShrink:0}}>
+                          <span style={{fontSize:14, color:"#357a62", fontWeight:500}}>$</span>
+                          <input
+                            style={{...S.ti, border:"none", padding:"4px 0", width:80, textAlign:"right", fontSize:15, fontWeight:500, background:"transparent"}}
+                            value={item.amount}
+                            onChange={e => {
+                              const v = e.target.value.replace(/[^0-9.]/g, "");
+                              updateItem(i, "amount", v);
+                            }}
+                            placeholder="0"
+                            inputMode="decimal"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{fontSize:11, color:"#b5b0a8", marginTop:4, fontStyle:"italic"}}>
+                    Use 1, 2, or all 3 lines — up to you.
+                  </div>
+                </div>
+              </Fade>
+
+              <Fade delay={200}>
+                <div style={{textAlign:"center", marginBottom:20}}>
+                  <div style={{
+                    fontSize:14, fontWeight:500, padding:"7px 16px", borderRadius:8, display:"inline-block",
+                    background: Math.abs(remaining) < 0.01 ? "#edf7f0" : remaining < 0 ? "#fdf0ef" : "#f6f3ee",
+                    color: Math.abs(remaining) < 0.01 ? "#357a62" : remaining < 0 ? "#8b5c5c" : "#5a5650"
+                  }}>
+                    {Math.abs(remaining) < 0.01
+                      ? "Perfectly allocated ✓"
+                      : remaining > 0
+                        ? `${fmt(remaining)} left to enjoy`
+                        : `${fmt(Math.abs(remaining))} over — adjust your amounts`
+                    }
+                  </div>
+                </div>
+
+                <div style={{textAlign:"center"}}>
+                  <button
+                    style={{...S.pri, opacity: canSave ? 1 : 0.4, cursor: canSave ? "pointer" : "default"}}
+                    onClick={canSave ? handleSave : undefined}
+                  >
+                    Receive & spend this money
+                  </button>
+                  {hasPartialRow && allocated > 0 && (
+                    <p style={{fontSize:11, color:"#c4933f", marginTop:8}}>Each line needs both a description and amount</p>
+                  )}
+                </div>
+              </Fade>
+            </>
+          )}
+
+          <Fade delay={260}>
+            <div style={{display:"flex", justifyContent:"center", gap:12, marginTop:28}}>
+              {entries.length > 0 && (
+                <button style={S.ghost} onClick={() => setPgView("log")}>
+                  Past days ({entries.length})
+                </button>
+              )}
+              {entries.length > 0 && <button style={{...S.ghost, color:"#8b5c5c"}} onClick={resetGame}>Reset game</button>}
+            </div>
+          </Fade>
+        </div>
+      );
+    };
+
+    const renderLog = () => (
+      <div style={S.page}>
+        <Fade>
+          <button style={S.back} onClick={() => setPgView("today")}>← Back to today</button>
+          <div style={S.ctr}>
+            <h1 style={S.h1}>Prosperity Log</h1>
+            <p style={{fontSize:14, color:"#5a5650"}}>{entries.length} day{entries.length !== 1 ? "s" : ""} · Total: {fmt(entries.length > 0 ? entries[entries.length-1].runningTotal : 0)}</p>
+          </div>
+        </Fade>
+        {entries.length >= 2 && (
+          <Fade delay={80}>
+            <ProsperityTrendChart entries={entries}/>
+          </Fade>
+        )}
+        <Fade delay={100}>
+          <div style={{maxWidth:480, margin:"0 auto"}}>
+            {[...entries].reverse().map((entry, i) => (
+              <div key={i} style={S.logCard}>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
+                  <div>
+                    <span style={{fontSize:14, fontWeight:600, color:"#1e1c1a"}}>Day {entry.dayNumber}</span>
+                    <span style={{fontSize:11, color:"#8a857e", marginLeft:8}}>{dateStr(entry.date)}</span>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:16, fontWeight:600, color:"#357a62"}}>{fmt(entry.amount)}</div>
+                    <div style={{fontSize:10, color: entry.mode === "double" ? "#c4933f" : "#8a857e"}}>{entry.mode === "double" ? "doubled" : "+$1,000"}</div>
+                  </div>
+                </div>
+                {entry.items.map((it, j) => (
+                  <div key={j} style={{padding:"6px 10px", background:"#f2f7f4", borderRadius:6, borderLeft:"2px solid #357a62", marginBottom:3, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                    <span style={{fontSize:12.5, color:"#2a2825"}}>{it.description}</span>
+                    <span style={{fontSize:12, color:"#357a62", fontWeight:500, flexShrink:0, marginLeft:10}}>{fmt(it.amount)}</span>
+                  </div>
+                ))}
+                <div style={{textAlign:"right", marginTop:6}}>
+                  <span style={{fontSize:11, color:"#8a857e"}}>Running: {fmt(entry.runningTotal)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Fade>
+      </div>
+    );
+
+    return (
+      <div style={{padding:"0"}}>
+        {pgView === "today" && renderToday()}
+        {pgView === "log" && renderLog()}
+      </div>
+    );
+  };
+
   /* ═══════ ROUTER ═══════ */
   return (
     <div style={S.app}>
@@ -1361,6 +1807,7 @@ function LifeMirror() {
         {view === "pmlog" && renderPmLog()}
         {view === "aplog" && renderApLog()}
         {view === "grlog" && renderGrLog()}
+        {view === "prosperity" && renderProsperity()}
       </div>
     </div>
   );
@@ -1384,7 +1831,10 @@ const S = {
   pri: {padding:"10px 22px", border:"none", borderRadius:9, background:"#357a62", color:"#fff", fontSize:13, cursor:"pointer", fontFamily:"'Newsreader',serif", transition:"all .2s"},
   sec: {padding:"10px 22px", border:"1px solid #c5c0b8", borderRadius:9, background:"transparent", color:"#3a3733", fontSize:13, cursor:"pointer", fontFamily:"'Newsreader',serif"},
   dGrid: {display:"grid", gridTemplateColumns:"repeat(2,1fr)", gap:11, marginBottom:20},
-  toolCard: {display:"flex", alignItems:"flex-start", gap:14, padding:"18px 18px", background:"#fff", border:"1px solid #e8e4dd", borderRadius:12, cursor:"pointer", fontFamily:"'Newsreader',serif", textAlign:"left", transition:"all .2s", boxShadow:"0 1px 8px rgba(0,0,0,.04)", width:"100%"},
+  toolCard: {display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"18px 12px 14px", background:"#fff", border:"1px solid #e8e4dd", borderRadius:12, cursor:"pointer", fontFamily:"'Newsreader',serif", textAlign:"center", transition:"all .2s", boxShadow:"0 1px 8px rgba(0,0,0,.04)", width:"100%"},
+  tcIcon: {fontSize:24, color:"#9e9890", lineHeight:1},
+  tcTitle: {fontSize:13.5, fontWeight:500, color:"#1e1c1a", lineHeight:1.3},
+  tcSub: {fontSize:11.5, color:"#8a857e", lineHeight:1.4},
   tBtn: {padding:"8px 16px", border:"1px solid #ddd8cf", borderRadius:8, background:"#fff", fontSize:12, cursor:"pointer", fontFamily:"'Newsreader',serif", color:"#3a3733"},
   logCard: {background:"#fff", borderRadius:11, border:"1px solid #e8e4dd", padding:"16px 18px", marginBottom:9, boxShadow:"0 1px 6px rgba(0,0,0,.03)"},
   iRow: {display:"flex", gap:6},
