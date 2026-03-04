@@ -210,8 +210,10 @@ const LS_URL = "life_mirror_sheet_url";
 const LS_API = "life_mirror_api_key";
 
 const LS_PG = "life_mirror_prosperity_game";
+const LS_BK = "life_mirror_baskets";
 
 const loadPG = () => { try { return JSON.parse(localStorage.getItem(LS_PG)) || { entries: [] }; } catch { return { entries: [] }; } };
+const loadBK = () => { try { return JSON.parse(localStorage.getItem(LS_BK)) || []; } catch { return []; } };
 
 const defArea = () => ({emotion:"contentment", focusWheels:[], currentWheel:{center:"",statements:[]}, chats:[]});
 const initAreas = () => ALL_AREAS.reduce((a,x) => {a[x.id]=defArea(); return a}, {});
@@ -595,6 +597,13 @@ function LifeMirror() {
   const [pgMode, setPgMode] = useState("increment");
   const [pgItems, setPgItems] = useState([{description:"",amount:""},{description:"",amount:""},{description:"",amount:""}]);
   const [pgJustSaved, setPgJustSaved] = useState(false);
+  const [baskets, setBaskets] = useState(loadBK);
+  const [bkTopic, setBkTopic] = useState("");
+  const [bkSentences, setBkSentences] = useState([]);
+  const [bkInp, setBkInp] = useState("");
+  const [bkBasketIdx, setBkBasketIdx] = useState(null); /* index = basket is ABOVE this sentence; null = not placed; bkSentences.length = at very bottom */
+  const [bkPhase, setBkPhase] = useState("topic"); /* "topic" | "dump" | "sort" */
+  const [bkDragIdx, setBkDragIdx] = useState(null);
 
   useEffect(() => { try { localStorage.setItem(LS_KEY, JSON.stringify(areas)); } catch {} }, [areas]);
   useEffect(() => { try { localStorage.setItem(LS_PM, JSON.stringify(placemats)); } catch {} }, [placemats]);
@@ -602,6 +611,7 @@ function LifeMirror() {
   useEffect(() => { try { localStorage.setItem(LS_MA, JSON.stringify(morningApps)); } catch {} }, [morningApps]);
 
   useEffect(() => { try { localStorage.setItem(LS_PG, JSON.stringify(pgData)); } catch {} }, [pgData]);
+  useEffect(() => { try { localStorage.setItem(LS_BK, JSON.stringify(baskets)); } catch {} }, [baskets]);
   useEffect(() => { try { localStorage.setItem(LS_URL, sheetUrl); } catch {} }, [sheetUrl]);
   useEffect(() => { try { localStorage.setItem(LS_API, apiKey); } catch {} }, [apiKey]);
 
@@ -999,6 +1009,13 @@ function LifeMirror() {
             <div style={S.tcSub}>Build your abundance vibration.{pgData.entries.length > 0 ? ` Day ${pgData.entries[pgData.entries.length-1].dayNumber + 1}.` : ""}</div>
           </button>
 
+          {/* Placing the Basket */}
+          <button style={S.toolCard} onClick={() => { setBkTopic(""); setBkSentences([]); setBkInp(""); setBkBasketIdx(null); setBkPhase("topic"); go("basket"); }}>
+            <span style={S.tcIcon}>⌓</span>
+            <div style={S.tcTitle}>Place the Basket</div>
+            <div style={S.tcSub}>Sort your thoughts. Set down what's heavy.{baskets.length>0?` ${baskets.length} past.`:""}</div>
+          </button>
+
         </div>
       </Fade>
 
@@ -1010,6 +1027,7 @@ function LifeMirror() {
           {placemats.length > 0 && <button style={S.tBtn} onClick={() => go("pmlog")}>Past Placemats ({placemats.length})</button>}
           {appreciations.length > 0 && <button style={S.tBtn} onClick={() => go("aplog")}>Past Evenings ({appreciations.length})</button>}
           {morningApps.length > 0 && <button style={S.tBtn} onClick={() => go("grlog")}>Past Mornings ({morningApps.length})</button>}
+          {baskets.length > 0 && <button style={S.tBtn} onClick={() => go("bklog")}>Past Baskets ({baskets.length})</button>}
         </div>
       </Fade>
 
@@ -1482,6 +1500,282 @@ function LifeMirror() {
     </div>
   );
 
+  /* ═══════ RENDER: PLACING THE BASKET ═══════ */
+  const bkAddSentence = () => {
+    if (!bkInp.trim() || bkSentences.length >= 12) return;
+    setBkSentences(p => [...p, bkInp.trim()]);
+    setBkInp("");
+  };
+  const bkRemove = (idx) => {
+    setBkSentences(p => p.filter((_,i) => i !== idx));
+    if (bkBasketIdx !== null) {
+      if (idx < bkBasketIdx) setBkBasketIdx(p => p - 1);
+      else if (idx === bkBasketIdx && bkBasketIdx >= bkSentences.length - 1) setBkBasketIdx(null);
+    }
+  };
+  const bkMove = (idx, dir) => {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= bkSentences.length) return;
+    setBkSentences(p => {
+      const a = [...p];
+      [a[idx], a[newIdx]] = [a[newIdx], a[idx]];
+      return a;
+    });
+    /* adjust basket position if items swap across it */
+    if (bkBasketIdx !== null) {
+      if (idx < bkBasketIdx && newIdx >= bkBasketIdx) setBkBasketIdx(p => p - 1);
+      else if (idx >= bkBasketIdx && newIdx < bkBasketIdx) setBkBasketIdx(p => p + 1);
+    }
+  };
+  const bkOnDragStart = (idx) => setBkDragIdx(idx);
+  const bkOnDrop = (targetIdx) => {
+    if (bkDragIdx === null || bkDragIdx === targetIdx) { setBkDragIdx(null); return; }
+    setBkSentences(p => {
+      const a = [...p];
+      const [item] = a.splice(bkDragIdx, 1);
+      a.splice(targetIdx, 0, item);
+      return a;
+    });
+    /* adjust basket */
+    if (bkBasketIdx !== null) {
+      let nb = bkBasketIdx;
+      if (bkDragIdx < bkBasketIdx && targetIdx >= bkBasketIdx) nb--;
+      else if (bkDragIdx >= bkBasketIdx && targetIdx < bkBasketIdx) nb++;
+      setBkBasketIdx(nb);
+    }
+    setBkDragIdx(null);
+  };
+  const bkPlaceBasket = (idx) => {
+    setBkBasketIdx(prev => prev === idx ? null : idx);
+  };
+  const bkSave = () => {
+    if (bkSentences.length === 0) return;
+    const carrying = bkBasketIdx !== null ? bkSentences.slice(0, bkBasketIdx) : bkSentences;
+    const settingDown = bkBasketIdx !== null ? bkSentences.slice(bkBasketIdx) : [];
+    const entry = {
+      date: new Date().toLocaleDateString(),
+      time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+      topic: bkTopic,
+      sentences: [...bkSentences],
+      basketIdx: bkBasketIdx,
+      carrying: carrying.length,
+      settingDown: settingDown.length
+    };
+    setBaskets(p => [entry, ...p]);
+    postToSheet({
+      timestamp: now(), area: "—", entryType: "Basket",
+      sideSource: `${bkSentences.length} thoughts · basket at ${bkBasketIdx !== null ? bkBasketIdx : "none"}`,
+      dimension: bkTopic,
+      content: carrying.map((s,i) => `${i+1}. ${s}`).join(" | "),
+      content2: settingDown.map((s,i) => `${i+1}. ${s}`).join(" | "),
+      content3: "", emotion: "", tilt: ""
+    });
+    go("main");
+  };
+
+  const renderBasket = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}>
+          <h1 style={S.h1}>Placing the Basket</h1>
+          <p style={S.sub}>
+            {bkPhase === "topic" && "What subject has some resistance on it?"}
+            {bkPhase === "dump" && "Write what's actually running through your mind. Up to 12 thoughts."}
+            {bkPhase === "sort" && "Drag or use arrows to sort: most allowing at top, most resistant at bottom. Then place the basket."}
+          </p>
+        </div>
+      </Fade>
+
+      {/* PHASE 1: Topic */}
+      {bkPhase === "topic" && (
+        <Fade delay={100}>
+          <div style={{maxWidth:440, margin:"0 auto"}}>
+            <div style={S.iRow}>
+              <input style={S.ti} value={bkTopic} onChange={e => setBkTopic(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && bkTopic.trim()) setBkPhase("dump"); }}
+                placeholder="Money… my body… that relationship…"/>
+              <button style={{...S.plus, background:"#8b7355"}} onClick={() => { if (bkTopic.trim()) setBkPhase("dump"); }}>→</button>
+            </div>
+          </div>
+        </Fade>
+      )}
+
+      {/* PHASE 2: Brain dump */}
+      {bkPhase === "dump" && (
+        <Fade delay={100}>
+          <div style={{maxWidth:440, margin:"0 auto"}}>
+            <div style={{fontSize:12, color:"#8b7355", fontWeight:600, textTransform:"uppercase", letterSpacing:".06em", marginBottom:10}}>
+              {bkTopic} · {bkSentences.length}/12 thoughts
+            </div>
+            <div style={S.iRow}>
+              <input style={S.ti} value={bkInp} onChange={e => setBkInp(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") bkAddSentence(); }}
+                placeholder="A thought about this…"
+                disabled={bkSentences.length >= 12}/>
+              <button style={{...S.plus, background:"#8b7355"}} onClick={bkAddSentence} disabled={bkSentences.length >= 12}>+</button>
+            </div>
+            {bkSentences.length > 0 && (
+              <div style={{display:"flex", flexDirection:"column", gap:4, marginTop:12}}>
+                {bkSentences.map((s, i) => (
+                  <div key={i} style={{fontSize:13, lineHeight:1.5, padding:"8px 12px", background:"#f8f5f0", borderRadius:8, borderLeft:"3px solid #8b7355", display:"flex", alignItems:"flex-start", gap:6}}>
+                    <span style={{flex:1, color:"#2a2825"}}>{s}</span>
+                    <button onClick={() => bkRemove(i)} style={{background:"none",border:"none",fontSize:14,color:"#c5c0b8",cursor:"pointer",padding:"0 2px",lineHeight:1,flexShrink:0}}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {bkSentences.length >= 2 && (
+              <div style={{textAlign:"center", marginTop:16}}>
+                <button style={{...S.pri, background:"#8b7355"}} onClick={() => setBkPhase("sort")}>Now sort them →</button>
+              </div>
+            )}
+          </div>
+        </Fade>
+      )}
+
+      {/* PHASE 3: Sort + Place basket */}
+      {bkPhase === "sort" && (
+        <Fade delay={100}>
+          <div style={{maxWidth:440, margin:"0 auto"}}>
+            <div style={{display:"flex", justifyContent:"space-between", marginBottom:10, padding:"0 4px"}}>
+              <span style={S.scE}>most allowing ↑</span>
+              <span style={S.scE}>most resistant ↓</span>
+            </div>
+
+            <div style={{display:"flex", flexDirection:"column", gap:0}}>
+              {/* Basket drop zone at very top */}
+              <div onClick={() => bkPlaceBasket(0)}
+                style={{height: bkBasketIdx === 0 ? "auto" : 12, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                  borderRadius:6, transition:"all .2s", margin:"0 0 2px"}}>
+                {bkBasketIdx === 0 ? (
+                  <div style={{width:"100%", padding:"8px 0", display:"flex", alignItems:"center", gap:8, justifyContent:"center"}}>
+                    <div style={{flex:1, height:2, background:"#8b7355"}}/>
+                    <span style={{fontSize:11, color:"#8b7355", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase", whiteSpace:"nowrap"}}>⌓ basket placed here</span>
+                    <div style={{flex:1, height:2, background:"#8b7355"}}/>
+                  </div>
+                ) : (
+                  <div style={{width:"80%", height:2, borderRadius:1, background:"transparent", transition:"background .2s"}}
+                    onMouseEnter={e=>e.target.style.background="#8b735540"}
+                    onMouseLeave={e=>e.target.style.background="transparent"}/>
+                )}
+              </div>
+
+              {bkSentences.map((s, i) => {
+                const aboveBasket = bkBasketIdx !== null && i < bkBasketIdx;
+                const belowBasket = bkBasketIdx !== null && i >= bkBasketIdx;
+                return (
+                  <React.Fragment key={i}>
+                    <div
+                      draggable
+                      onDragStart={() => bkOnDragStart(i)}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={() => bkOnDrop(i)}
+                      style={{
+                        display:"flex", alignItems:"center", gap:6, padding:"8px 10px",
+                        background: bkDragIdx === i ? "#eee9e2" : aboveBasket ? "#f0f7f2" : belowBasket ? "#faf5f0" : "#fff",
+                        border:"1px solid #e8e4dd", borderRadius:8, cursor:"grab",
+                        fontSize:13, lineHeight:1.5, fontFamily:"'Newsreader',serif",
+                        opacity: bkDragIdx === i ? 0.5 : 1, transition:"all .15s",
+                        marginBottom:2
+                      }}>
+                      <span style={{fontSize:10, color:"#b5b0a8", minWidth:16, textAlign:"right"}}>{i+1}</span>
+                      <span style={{width:7, height:7, borderRadius:"50%", background: aboveBasket ? "#357a62" : belowBasket ? "#8b5c5c" : "#d0cbc4", flexShrink:0}}/>
+                      <span style={{flex:1, color:"#2a2825"}}>{s}</span>
+                      <div style={{display:"flex", gap:2, flexShrink:0}}>
+                        <button onClick={() => bkMove(i, -1)} disabled={i===0} style={{background:"none",border:"none",fontSize:14,color:i===0?"#ddd8cf":"#8a857e",cursor:i===0?"default":"pointer",padding:"0 3px"}}>↑</button>
+                        <button onClick={() => bkMove(i, 1)} disabled={i===bkSentences.length-1} style={{background:"none",border:"none",fontSize:14,color:i===bkSentences.length-1?"#ddd8cf":"#8a857e",cursor:i===bkSentences.length-1?"default":"pointer",padding:"0 3px"}}>↓</button>
+                      </div>
+                    </div>
+
+                    {/* Basket drop zone between sentences */}
+                    <div onClick={() => bkPlaceBasket(i + 1)}
+                      style={{height: bkBasketIdx === i + 1 ? "auto" : 12, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+                        borderRadius:6, transition:"all .2s", margin:"0 0 2px"}}>
+                      {bkBasketIdx === i + 1 ? (
+                        <div style={{width:"100%", padding:"8px 0", display:"flex", alignItems:"center", gap:8, justifyContent:"center"}}>
+                          <div style={{flex:1, height:2, background:"#8b7355"}}/>
+                          <span style={{fontSize:11, color:"#8b7355", fontWeight:600, letterSpacing:".06em", textTransform:"uppercase", whiteSpace:"nowrap"}}>⌓ basket placed here</span>
+                          <div style={{flex:1, height:2, background:"#8b7355"}}/>
+                        </div>
+                      ) : (
+                        <div style={{width:"80%", height:2, borderRadius:1, background:"transparent", transition:"background .2s"}}
+                          onMouseEnter={e=>e.target.style.background="#8b735540"}
+                          onMouseLeave={e=>e.target.style.background="transparent"}/>
+                      )}
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {bkBasketIdx !== null && (
+              <Fade delay={50}>
+                <div style={{textAlign:"center", marginTop:16}}>
+                  <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:14, color:"#5a5650", fontStyle:"italic", marginBottom:4}}>
+                    Carrying {bkBasketIdx} thought{bkBasketIdx !== 1 ? "s" : ""}. Setting down {bkSentences.length - bkBasketIdx}.
+                  </p>
+                  <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:13, color:"#8a857e", fontStyle:"italic", marginBottom:14}}>
+                    You don't have to work on all of it. Just what you can hold comfortably.
+                  </p>
+                  <button style={{...S.pri, background:"#8b7355"}} onClick={bkSave}>Save this basket</button>
+                </div>
+              </Fade>
+            )}
+
+            {bkBasketIdx === null && (
+              <p style={{fontFamily:"'Cormorant Garamond',serif", fontSize:13, color:"#b5b0a8", fontStyle:"italic", textAlign:"center", marginTop:16}}>
+                Click between sentences to place the basket.
+              </p>
+            )}
+
+            <div style={{textAlign:"center", marginTop:12}}>
+              <button style={{...S.ghost, fontSize:12}} onClick={() => setBkPhase("dump")}>← Back to editing</button>
+            </div>
+          </div>
+        </Fade>
+      )}
+    </div>
+  );
+
+  const renderBasketLog = () => (
+    <div style={S.page}>
+      <Fade>
+        <button style={S.back} onClick={() => go("main")}>← Back</button>
+        <div style={S.ctr}><h1 style={S.h1}>Past Baskets</h1></div>
+      </Fade>
+      <Fade delay={100}>
+        <div style={{maxWidth:480, margin:"0 auto"}}>
+          {baskets.length === 0 ? <p style={S.empty}>No baskets yet.</p> : baskets.map((bk, i) => (
+            <div key={i} style={S.logCard}>
+              <div style={{display:"flex", justifyContent:"space-between", marginBottom:8}}>
+                <span style={{fontSize:11, color:"#8a857e"}}>{bk.date} {bk.time}</span>
+                <span style={{fontSize:9.5, color:"#8b7355", textTransform:"uppercase", letterSpacing:".06em"}}>
+                  {bk.carrying} carrying · {bk.settingDown} set down
+                </span>
+              </div>
+              <div style={{fontSize:13, fontWeight:500, marginBottom:8, color:"#1e1c1a"}}>{bk.topic}</div>
+              {bk.sentences.map((s, j) => (
+                <React.Fragment key={j}>
+                  {bk.basketIdx === j && (
+                    <div style={{display:"flex", alignItems:"center", gap:8, margin:"6px 0"}}>
+                      <div style={{flex:1, height:2, background:"#8b7355"}}/>
+                      <span style={{fontSize:10, color:"#8b7355", fontWeight:600, letterSpacing:".05em"}}>⌓ BASKET</span>
+                      <div style={{flex:1, height:2, background:"#8b7355"}}/>
+                    </div>
+                  )}
+                  <div style={{fontSize:12.5, lineHeight:1.5, color:"#3a3733", marginBottom:3, paddingLeft:8, opacity: bk.basketIdx !== null && j >= bk.basketIdx ? 0.5 : 1}}>
+                    <span style={{color: bk.basketIdx !== null && j < bk.basketIdx ? "#357a62" : bk.basketIdx !== null && j >= bk.basketIdx ? "#8b5c5c" : "#8b7355", marginRight:6, fontWeight:500}}>{j+1}.</span>{s}
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          ))}
+        </div>
+      </Fade>
+    </div>
+  );
+
   /* ═══════ RENDER: PROSPERITY GAME ═══════ */
   const renderProsperity = () => {
     const entries = pgData.entries || [];
@@ -1807,6 +2101,8 @@ function LifeMirror() {
         {view === "pmlog" && renderPmLog()}
         {view === "aplog" && renderApLog()}
         {view === "grlog" && renderGrLog()}
+        {view === "basket" && renderBasket()}
+        {view === "bklog" && renderBasketLog()}
         {view === "prosperity" && renderProsperity()}
       </div>
     </div>
