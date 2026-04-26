@@ -84,6 +84,11 @@ const REFLECTIONS_BIG = [
   "You won't get there in one jump. But the next emotion up? That's doable.",
 ];
 
+const STEMS = [
+  {label:"I appreciate…", placeholder:"I appreciate…"},
+  {label:"If I wasn't afraid…", placeholder:"If I wasn't afraid I would…"},
+  {label:"A place I can love more of me…", placeholder:"A place I can love more of me right now (and feel it) is…"}
+];
 const MQ = "Life is a mirror — when you smile, life smiles back.";
 const REMINDERS = [
   "Nothing is more important than that you feel good.",
@@ -200,6 +205,58 @@ NEVER: action steps, diagnose, spiritual bypass, lecture (>3 sentences), stack q
 START: Open casually based on what you know about their area. Examples: "So — [area]. What's going on there?" / "Talk to me about [area]. What's got some weight on it?" / "What's up with [area]?" If no specific area, just: "OK. What's got your attention right now?" Keep it casual and direct.`;
 
 const SUMMARY_PROMPT = "Summarize this coaching session in 3-4 sentences. Focus on: what the person was working through, what shifted (if anything), where they landed emotionally, and what felt genuinely possible to them by the end (if anything). Write in third person past tense. Be specific, not generic. Keep it under 60 words.";
+
+/* ═══════ NĀMA-RŪPA INQUIRY PROMPT ═══════ */
+const NR_PROMPT = `You are the Nāma-Rūpa Inquiry guide inside Life Mirror. Your purpose is to help the person see through the constructed nature of their experience — not analytically, but directly.
+
+FOUNDATION — THERAVĀDA GROUNDING:
+This practice is rooted in Theravāda Buddhist philosophy, specifically the teaching on nāma-rūpa and the arising of perception. The core insight is this: what we call "experience" or "reality" is not one unified thing. It is at minimum two distinct events happening in rapid sequence:
+
+1. RŪPA — the raw sensory event. Photons hitting the eye. Sound waves at the ear. Physical sensation at the body surface. This is bare contact — before any interpretation, before any name. Just the event at the sense door.
+
+2. NĀMA (saññā — perception/recognition) — the mind matching incoming sensory data against stored impressions and firing a label. "Tree." "Chair." "Smell of coffee." This is not fresh seeing. This is memory arising in the present and being mistaken for the present. The name is not in the object. It is in the mind.
+
+THE KEY TEACHING — THE MOM EXAMPLE:
+A baby does not arrive knowing "mom." The child experiences the same face, the same voice, the same touch — together, repeatedly. Each co-arising confirms the pattern. Eventually it hardens: now "seeing mom" feels like one immediate, direct perception. But it is actually: sensory contact → stored pattern fires → recognition presented as direct seeing. The name arose from repetition, from memory, from the past. It is a thought — not a perception. This is how all objects are known. Every "tree," every "chair," every "self" — built the same way.
+
+YOUR ONE JOB:
+Help the person notice the gap between the bare sensory event and the naming that follows. With whatever object, sound, sensation, or experience they bring. The insight is not complex. It is simple and immediate: there is the seeing, and there is the naming — and they are not the same thing.
+
+This is yathābhūta-ñāṇadassana — seeing things as they actually are. Not a philosophical position. A direct noticing. Reality as we live it is largely the second layer — the named, recognised, constructed layer — mistaken for the first.
+
+SCOPE — WHAT YOU DO AND DON'T DO:
+- Stay at the foundational level: bare contact vs. recognition/naming. This is the first layer of the practice.
+- Vedanā (feeling tone — pleasant, unpleasant, neutral) is real and important but is not the focus yet. Don't elaborate on it.
+- Deeper saṅkhāra (mental formations, craving, aversion) come later. Don't go there.
+- If something emotionally heavy comes up, acknowledge it briefly and bring the inquiry back: "What was the actual sensory event? What was there before it became that?"
+- You are not a therapist. You are not a meditation teacher giving technique instructions. You are a quiet pointing finger.
+
+THE INQUIRY — HOW IT FLOWS:
+When the person brings an object or experience, guide gently through:
+1. Which sense door made contact? (seeing, hearing, smelling, tasting, touching, or mind)
+2. What was the bare event — the raw sensory quality before any name?
+3. When did the name arise? Can they locate the moment before the label appeared?
+4. Where did the name come from? (Not this moment — from memory, from past learning, from repetition)
+5. What would remain if the name were lifted?
+
+Do not run through this as a checklist. One question at a time. Follow where their attention naturally goes.
+
+VOICE AND TONE:
+Quiet. Simple. Pointing, not explaining. Short questions are better than long explanations. Let silence and attention do the work.
+
+Good: "What was there before it became a tree?"
+Good: "When did the word arise?"
+Good: "Is the name in the object, or in the mind?"
+Good: "What does the eye actually touch?"
+Good: "Where did 'chair' come from?"
+
+Never: Long philosophical explanations. Academic language. Encouragement like "great noticing!" Rushing to the next question before they've sat with this one. More than 2-3 sentences per response.
+
+If the person has an insight or says something has become clear — confirm it quietly and stop. Don't add to it. "Yes. Just that." is a complete response.
+
+START: Ask simply what they want to bring to the inquiry. Keep it open — they might bring a physical object in front of them, a sound they just heard, a smell, a memory, a face. All of it works the same way. Begin: "What would you like to look at?"`;
+
+const NR_SUMMARY_PROMPT = "Summarize this Nāma-Rūpa inquiry session in 2-3 sentences. What did the person bring? What did they notice about the gap between bare sensory contact and recognition/naming? Write in third person past tense. Be specific. Under 50 words.";
 
 /* ═══════ STORAGE ═══════ */
 const LS_KEY = "life_mirror_data";
@@ -559,6 +616,143 @@ const ChatPanel = ({areaId, areaLabel, areaData, apiKey, onClose, onSave, logToS
   );
 };
 
+/* ═══════ NĀMA-RŪPA INQUIRY PANEL ═══════ */
+const NamaRupaPanel = ({apiKey, onClose, onSave}) => {
+  const [msgs, setMsgs] = useState([]);
+  const [inp, setInp] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const endRef = useRef(null);
+  const inpRef = useRef(null);
+  const msgsRef = useRef([]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({behavior:"smooth"}); }, [msgs]);
+  useEffect(() => { msgsRef.current = msgs; }, [msgs]);
+
+  const callApi = async (messages) => {
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body: JSON.stringify({model:"claude-sonnet-4-20250514", max_tokens:250, system:NR_PROMPT, messages})
+      });
+      const d = await r.json();
+      return d.content?.map(b => b.text || "").join("") || "";
+    } catch { return ""; }
+  };
+
+  const send = async (t) => {
+    if (!t.trim()) return;
+    const nm = [...msgs, {role:"user", content:t.trim()}];
+    setMsgs(nm); setInp(""); setLoading(true);
+    const reply = await callApi(nm);
+    setMsgs(p => [...p, {role:"assistant", content:reply}]);
+    setLoading(false);
+    setTimeout(() => inpRef.current?.focus(), 100);
+  };
+
+  const start = async () => {
+    setStarted(true); setLoading(true);
+    const reply = await callApi([{role:"user", content:"I'm opening an inquiry session. Begin."}]);
+    setMsgs([{role:"assistant", content:reply}]);
+    setLoading(false);
+    setTimeout(() => inpRef.current?.focus(), 100);
+  };
+
+  const handleClose = async () => {
+    const currentMsgs = msgsRef.current;
+    if (currentMsgs.length < 2) { onClose(); return; }
+    setClosing(true);
+    const convoText = currentMsgs.map(m => (m.role==="user" ? "Person: " : "Guide: ") + m.content).join("\n");
+    let summary = "Inquiry session completed.";
+    try {
+      const s = await callApi([{role:"user", content:"Here is a Nāma-Rūpa inquiry session transcript. " + NR_SUMMARY_PROMPT + "\n\nTRANSCRIPT:\n" + convoText}]);
+      if (s && s.length > 10) summary = s;
+    } catch {}
+    onSave({date: new Date().toLocaleDateString(), messages: currentMsgs, summary});
+    setClosing(false);
+    onClose();
+  };
+
+  const mb = {
+    user: {bg:"#4a6fa5", c:"#fff", br:"14px 14px 4px 14px", border:"none"},
+    assistant: {bg:"#fff", c:"#2a2825", br:"14px 14px 14px 4px", border:"1px solid #e8e4dd"}
+  };
+
+  const LS_NR = "life_mirror_namarupa";
+  const loadNrSessions = () => { try { return JSON.parse(localStorage.getItem(LS_NR)) || []; } catch { return []; } };
+  const [nrSessions] = useState(loadNrSessions);
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.35)",zIndex:200,display:"flex",justifyContent:"flex-end"}} onClick={e=>{if(e.target===e.currentTarget&&!closing)handleClose()}}>
+      <div style={{width:"100%",maxWidth:420,height:"100%",background:"#f8f7f4",display:"flex",flexDirection:"column",boxShadow:"-4px 0 24px rgba(0,0,0,.12)"}}>
+
+        {/* Header */}
+        <div style={{padding:"16px 18px",borderBottom:"1px solid #e8e4dd",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
+          <div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:17,fontWeight:500,color:"#1e1c1a",letterSpacing:".01em"}}>Nāma-Rūpa Inquiry</div>
+            <div style={{fontSize:11,color:"#8a857e",marginTop:2}}>seeing · naming · the gap between{nrSessions.length > 0 ? ` · ${nrSessions.length} past` : ""}</div>
+          </div>
+          <button onClick={handleClose} disabled={closing} style={{background:"none",border:"none",fontSize:18,color:"#b5b0a8",cursor:"pointer",padding:4,lineHeight:1}}>
+            {closing ? "…" : "×"}
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div style={{flex:1,overflowY:"auto",padding:"20px 18px",display:"flex",flexDirection:"column",gap:12}}>
+          {!started && !loading && (
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:20,textAlign:"center",padding:"0 24px"}}>
+              <div style={{fontSize:28,opacity:.3}}>◎</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,color:"#4a4540",lineHeight:1.6}}>
+                Bring any object, sound, sensation, or memory.<br/>
+                <span style={{fontSize:14,color:"#8a857e"}}>We will look at what is actually there.</span>
+              </div>
+              {apiKey
+                ? <button onClick={start} style={{marginTop:8,padding:"10px 28px",borderRadius:22,background:"#4a6fa5",color:"#fff",border:"none",fontSize:13,fontFamily:"'Newsreader',serif",cursor:"pointer",letterSpacing:".02em"}}>Begin inquiry</button>
+                : <p style={{fontSize:12,color:"#8b5c5c",marginTop:8}}>Add your Anthropic API key in Settings first.</p>
+              }
+            </div>
+          )}
+          {msgs.map((m,i) => (
+            <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+              <div style={{maxWidth:"82%",padding:"10px 14px",borderRadius:mb[m.role].br,background:mb[m.role].bg,color:mb[m.role].c,border:mb[m.role].border,fontSize:14,lineHeight:1.55,fontFamily:"'Newsreader',serif"}}>
+                {m.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{display:"flex",justifyContent:"flex-start"}}>
+              <div style={{padding:"10px 14px",borderRadius:"14px 14px 14px 4px",background:"#fff",border:"1px solid #e8e4dd",color:"#b5b0a8",fontSize:14,fontFamily:"'Newsreader',serif",fontStyle:"italic"}}>
+                …
+              </div>
+            </div>
+          )}
+          <div ref={endRef}/>
+        </div>
+
+        {/* Input */}
+        {started && (
+          <div style={{padding:"12px 18px 20px",borderTop:"1px solid #e8e4dd",flexShrink:0,display:"flex",gap:8,alignItems:"flex-end"}}>
+            <textarea
+              ref={inpRef}
+              value={inp}
+              onChange={e=>setInp(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(inp);}}}
+              placeholder="Bring something to look at…"
+              rows={1}
+              style={{flex:1,resize:"none",border:"1px solid #e8e4dd",borderRadius:12,padding:"10px 14px",fontSize:14,fontFamily:"'Newsreader',serif",background:"#fff",color:"#2a2825",lineHeight:1.5,minHeight:42,maxHeight:120,overflowY:"auto"}}
+            />
+            <button onClick={()=>send(inp)} disabled={!inp.trim()||loading} style={{flexShrink:0,width:40,height:40,borderRadius:"50%",background:inp.trim()&&!loading?"#4a6fa5":"#e8e4dd",border:"none",color:"#fff",fontSize:18,cursor:inp.trim()&&!loading?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",transition:"background .2s"}}>
+              ↑
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 /* ═══════ MAIN APP ═══════ */
 function LifeMirror() {
   const [view, setView] = useState("mirror");
@@ -580,6 +774,7 @@ function LifeMirror() {
   const [apiKey, setApiKey] = useState(loadApi);
   const [apiKeyInp, setApiKeyInp] = useState(loadApi);
   const [showChat, setShowChat] = useState(false);
+  const [showNamaRupa, setShowNamaRupa] = useState(false);
   const [pmMine, setPmMine] = useState([]);
   const [pmUni, setPmUni] = useState([]);
   const [pmInp, setPmInp] = useState("");
@@ -592,6 +787,8 @@ function LifeMirror() {
   const [grInp, setGrInp] = useState("");
   const [grDesires, setGrDesires] = useState([]);
   const [grDesInp, setGrDesInp] = useState("");
+  const [grStem, setGrStem] = useState(0);
+  const [apStem, setApStem] = useState(0);
   const [pgData, setPgData] = useState(loadPG);
   const [pgView, setPgView] = useState("today");
   const [pgMode, setPgMode] = useState("increment");
@@ -651,6 +848,14 @@ function LifeMirror() {
   const handleChatSave = useCallback((chatEntry) => {
     upd(d => ({...d, chats:[...(d.chats||[]), chatEntry]}));
   }, [upd]);
+
+  const handleNrSave = useCallback((entry) => {
+    try {
+      const LS_NR = "life_mirror_namarupa";
+      const existing = JSON.parse(localStorage.getItem(LS_NR) || "[]");
+      localStorage.setItem(LS_NR, JSON.stringify([...existing, entry]));
+    } catch {}
+  }, []);
 
   /* Focus Wheel */
   const setCtr = () => { if(!fCInp.trim()) return; upd(d=>({...d, currentWheel:{...d.currentWheel, center:fCInp.trim()}})); setFCInp(""); };
@@ -982,7 +1187,7 @@ function LifeMirror() {
         <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:24}}>
 
           {/* Morning Appreciation & Desires */}
-          <button style={S.toolCard} onClick={() => { setGrItems([]); setGrInp(""); setGrDesires([]); setGrDesInp(""); go("morning"); }}>
+          <button style={S.toolCard} onClick={() => { setGrItems([]); setGrInp(""); setGrDesires([]); setGrDesInp(""); setGrStem(0); go("morning"); }}>
             <span style={S.tcIcon}>☀</span>
             <div style={S.tcTitle}>Morning Appreciation</div>
             <div style={S.tcSub}>Appreciate what is. Desire what's coming.</div>
@@ -1010,7 +1215,7 @@ function LifeMirror() {
           </button>
 
           {/* Evening Appreciation & Desires */}
-          <button style={S.toolCard} onClick={() => { setApItems([]); setApInp(""); setApDesires([]); setApDesInp(""); go("appreciate"); }}>
+          <button style={S.toolCard} onClick={() => { setApItems([]); setApInp(""); setApDesires([]); setApDesInp(""); setApStem(0); go("appreciate"); }}>
             <span style={S.tcIcon}>✦</span>
             <div style={S.tcTitle}>Evening Appreciation</div>
             <div style={S.tcSub}>What showed up today?</div>
@@ -1028,6 +1233,13 @@ function LifeMirror() {
             <span style={S.tcIcon}>⌓</span>
             <div style={S.tcTitle}>Place the Basket</div>
             <div style={S.tcSub}>Sort your thoughts. Set down what's heavy.{baskets.length>0?` ${baskets.length} past.`:""}</div>
+          </button>
+
+          {/* Nāma-Rūpa Inquiry */}
+          <button style={S.toolCard} onClick={() => setShowNamaRupa(true)}>
+            <span style={S.tcIcon}>◌</span>
+            <div style={S.tcTitle}>Nāma-Rūpa Inquiry</div>
+            <div style={S.tcSub}>See the seeing. Name the naming.</div>
           </button>
 
         </div>
@@ -1086,8 +1298,19 @@ function LifeMirror() {
       <Fade delay={120}>
         <div style={{marginBottom:6}}>
           <div style={{fontSize:11, fontWeight:600, color:"#c4933f", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8}}>Appreciation</div>
+          <div style={{display:"flex", gap:5, flexWrap:"wrap", marginBottom:8}}>
+            {STEMS.map((st, i) => (
+              <button key={i} onClick={() => setGrStem(i)} style={{
+                padding:"4px 12px", borderRadius:16, fontSize:11, fontFamily:"'Newsreader',serif",
+                border:`1px solid ${grStem===i?"#c4933f":"#ddd8cf"}`,
+                background:grStem===i?"#c4933f14":"transparent",
+                color:grStem===i?"#c4933f":"#807a72",
+                cursor:"pointer", transition:"all .15s"
+              }}>{st.label}</button>
+            ))}
+          </div>
           <div style={S.iRow}>
-            <input style={S.ti} value={grInp} onChange={e=>setGrInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addGrItem()} placeholder="I appreciate…"/>
+            <input style={S.ti} value={grInp} onChange={e=>setGrInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addGrItem()} placeholder={STEMS[grStem].placeholder}/>
             <button style={{...S.plus, background:"#c4933f"}} onClick={addGrItem}>+</button>
           </div>
         </div>
@@ -1393,8 +1616,19 @@ function LifeMirror() {
       <Fade delay={100}>
         <div style={{marginBottom:6}}>
           <div style={{fontSize:11, fontWeight:600, color:"#6b5b95", textTransform:"uppercase", letterSpacing:".06em", marginBottom:8}}>Appreciation</div>
+          <div style={{display:"flex", gap:5, flexWrap:"wrap", marginBottom:8}}>
+            {STEMS.map((st, i) => (
+              <button key={i} onClick={() => setApStem(i)} style={{
+                padding:"4px 12px", borderRadius:16, fontSize:11, fontFamily:"'Newsreader',serif",
+                border:`1px solid ${apStem===i?"#6b5b95":"#ddd8cf"}`,
+                background:apStem===i?"#6b5b9514":"transparent",
+                color:apStem===i?"#6b5b95":"#807a72",
+                cursor:"pointer", transition:"all .15s"
+              }}>{st.label}</button>
+            ))}
+          </div>
           <div style={S.iRow}>
-            <input style={S.ti} value={apInp} onChange={e=>setApInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addApItem()} placeholder="Something that showed up today…"/>
+            <input style={S.ti} value={apInp} onChange={e=>setApInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addApItem()} placeholder={STEMS[apStem].placeholder}/>
             <button style={{...S.plus, background:"#6b5b95"}} onClick={addApItem}>+</button>
           </div>
         </div>
@@ -2147,6 +2381,7 @@ function LifeMirror() {
     <div style={S.app}>
       {showSettings && renderSettings()}
       {showChat && <ChatPanel areaId={sel} areaLabel={arObj.label} areaData={dt} apiKey={apiKey} onClose={()=>setShowChat(false)} onSave={handleChatSave} logToSheet={logToSheet} mirrorFeel={mFeel} mirrorReach={mReach}/>}
+      {showNamaRupa && <NamaRupaPanel apiKey={apiKey} onClose={()=>setShowNamaRupa(false)} onSave={handleNrSave}/>}
       <ReminderStrip/>
       <div style={{padding:"16px 20px 72px"}}>
         {view === "mirror" && renderMirror()}
